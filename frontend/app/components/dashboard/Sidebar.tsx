@@ -24,7 +24,7 @@ export const Sidebar = () => {
   const pathname = usePathname();
 
   return (
-    <aside className="w-56 bg-white border-r border-gray-200 p-6 flex flex-col">
+    <aside className="w-56 bg-white border-r border-gray-200 p-6 flex flex-col h-screen sticky top-0">
       <div className="mb-8">
         <h1 className="text-lg font-bold text-gray-900">Collections</h1>
         <p className="text-xs text-gray-500">Organize your images</p>
