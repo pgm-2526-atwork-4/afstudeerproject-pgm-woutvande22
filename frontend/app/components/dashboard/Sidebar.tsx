@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -8,7 +9,9 @@ import {
   FolderSpecialOutlined, 
   LocalOfferOutlined, 
   SettingsOutlined, 
-  LogoutOutlined 
+  LogoutOutlined,
+  ChevronLeftOutlined,
+  ChevronRightOutlined,
 } from "@mui/icons-material";
 
 const navItems = [
@@ -22,29 +25,49 @@ const navItems = [
 
 export const Sidebar = () => {
   const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <aside className="w-56 bg-white border-r border-gray-200 p-6 flex flex-col h-screen sticky top-0">
-      <div className="mb-8">
-        <h1 className="text-lg font-bold text-gray-900">Collections</h1>
-        <p className="text-xs text-gray-500">Organize your images</p>
+    <aside
+      className={`${
+        collapsed ? "w-16" : "w-56"
+      } bg-white border-r border-gray-200 p-4 flex flex-col h-screen sticky top-0 transition-all duration-300`}
+    >
+      <div className={`mb-8 flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
+        {!collapsed && (
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">Collections</h1>
+            <p className="text-xs text-gray-500">Organize your images</p>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setCollapsed((c) => !c)}
+          className="flex items-center justify-center p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? <ChevronRightOutlined /> : <ChevronLeftOutlined />}
+        </button>
       </div>
 
-      <nav className="flex flex-col gap-1">
+      <nav className="flex flex-col gap-1 flex-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
+              title={collapsed ? item.label : undefined}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                collapsed ? "justify-center" : ""
+              } ${
                 isActive
                   ? "bg-sky-50 text-sky-600"
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
-              <span>{item.icon}</span>
-              {item.label}
+              <span className="text-xl">{item.icon}</span>
+              {!collapsed && item.label}
             </Link>
           );
         })}
