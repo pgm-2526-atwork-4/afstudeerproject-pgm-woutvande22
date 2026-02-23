@@ -18,7 +18,7 @@ const images = [
 export default function DashboardPage() {
   return (
     <div className="pb-24">
-      <div className="sticky top-0 z-10 -mx-8 px-8 pt-8 pb-4 bg-gray-50/80 backdrop-blur-md">
+      <div className="sticky top-0 z-10 px-8 pt-8 pb-4 bg-gray-50/80 backdrop-blur-md">
         <div className="flex items-center justify-between">
           <PageHeader
             title="All Images"
@@ -30,7 +30,9 @@ export default function DashboardPage() {
         <SearchFilterBar />
       </div>
 
-      <ImageGrid images={images} />
+      <div className="px-8">
+        <ImageGrid images={images} />
+      </div>
 
       <GenerateCollectionButton />
     </div>
