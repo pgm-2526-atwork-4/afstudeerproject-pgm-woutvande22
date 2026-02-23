@@ -18,13 +18,11 @@ const moodboards = [
 export default function LandingPage() {
   return (
     <main className="min-h-screen bg-white">
-      {/* Navbar */}
+
       <Navbar></Navbar>
 
-      {/* Hero */}
       <Hero></Hero>
 
-      {/* App mockup */}
       <section className="flex justify-center px-6 pb-20">
         <div className="w-full max-w-3xl bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden">
           {/* Browser traffic lights */}
