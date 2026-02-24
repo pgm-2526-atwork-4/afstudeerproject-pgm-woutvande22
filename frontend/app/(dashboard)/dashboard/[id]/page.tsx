@@ -15,6 +15,14 @@ const images: Record<string, { label: string; color: string; size: string; tags:
   "woven-linen": { label: "Woven Linen", color: "#5a5a52", size: "1920×1080", tags: ["texture", "color"] },
 };
 
+const collectionImages: Record<string, string[]> = {
+  "brand-assets-2024": [
+    "serif-elegance", "gradient-burst", "grid-system", "brand-identity-kit",
+    "ink-botanicals", "desert-light", "mono-type", "woven-linen",
+    "dashboard-ui", "brush-strokes", "bold-architecture", "editorial-spread",
+  ],
+};
+
 interface ImageDetailPageProps {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ collection?: string }>;
@@ -24,6 +32,23 @@ export default async function ImageDetailPage({ params, searchParams }: ImageDet
   const { id } = await params;
   const { collection } = await searchParams;
   const image = images[id];
+
+  // Compute prev/next image hrefs
+  let prevHref: string | undefined;
+  let nextHref: string | undefined;
+
+  const ids = collection && collectionImages[collection]
+    ? collectionImages[collection]
+    : Object.keys(images);
+  const currentIndex = ids.indexOf(id);
+  const collectionParam = collection ? `?collection=${collection}` : "";
+
+  if (currentIndex > 0) {
+    prevHref = `/dashboard/${ids[currentIndex - 1]}${collectionParam}`;
+  }
+  if (currentIndex >= 0 && currentIndex < ids.length - 1) {
+    nextHref = `/dashboard/${ids[currentIndex + 1]}${collectionParam}`;
+  }
 
   if (!image) {
     return (
@@ -52,7 +77,7 @@ export default async function ImageDetailPage({ params, searchParams }: ImageDet
       </div>
 
       <div className="flex gap-8 flex-col lg:flex-row">
-        <ImagePreview color={image.color} alt={image.label} />
+        <ImagePreview color={image.color} alt={image.label} prevHref={prevHref} nextHref={nextHref} />
 
         <div className="flex-1">
           <ImageDetailsForm
