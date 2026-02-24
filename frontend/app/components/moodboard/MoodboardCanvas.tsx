@@ -23,9 +23,43 @@ export function MoodboardCanvas({
   onZoomChange,
 }: MoodboardCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const panStartRef = useRef<{ startX: number; startY: number; scrollLeft: number; scrollTop: number } | null>(null);
 
   const handleCanvasClick = useCallback(
     (e: React.PointerEvent) => {
+      // Middle mouse button (button 1) — start panning
+      if (e.button === 1) {
+        e.preventDefault();
+        const el = containerRef.current;
+        if (!el) return;
+
+        panStartRef.current = {
+          startX: e.clientX,
+          startY: e.clientY,
+          scrollLeft: el.scrollLeft,
+          scrollTop: el.scrollTop,
+        };
+
+        const handlePointerMove = (ev: PointerEvent) => {
+          if (!panStartRef.current || !containerRef.current) return;
+          const dx = ev.clientX - panStartRef.current.startX;
+          const dy = ev.clientY - panStartRef.current.startY;
+          containerRef.current.scrollLeft = panStartRef.current.scrollLeft - dx;
+          containerRef.current.scrollTop = panStartRef.current.scrollTop - dy;
+        };
+
+        const handlePointerUp = () => {
+          panStartRef.current = null;
+          window.removeEventListener("pointermove", handlePointerMove);
+          window.removeEventListener("pointerup", handlePointerUp);
+        };
+
+        window.addEventListener("pointermove", handlePointerMove);
+        window.addEventListener("pointerup", handlePointerUp);
+        return;
+      }
+
+      // Left click on empty canvas — deselect
       if (e.target === containerRef.current || e.target === containerRef.current?.firstChild) {
         onSelect(null);
       }
@@ -51,6 +85,7 @@ export function MoodboardCanvas({
       className="flex-1 overflow-auto bg-white relative"
       onPointerDown={handleCanvasClick}
       onWheel={handleWheel}
+      onMouseDown={(e) => { if (e.button === 1) e.preventDefault(); }}
     >
       <div
         style={{
