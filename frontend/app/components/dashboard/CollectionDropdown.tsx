@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ExpandMoreOutlined, ExpandLessOutlined } from "@mui/icons-material";
@@ -14,9 +13,14 @@ const collections = [
   { id: "illustrations", title: "Illustrations" },
 ];
 
-export const CollectionDropdown = ({ children }: { children: React.ReactNode }) => {
+interface CollectionDropdownProps {
+  children: React.ReactNode;
+  open: boolean;
+  onToggle: () => void;
+}
+
+export const CollectionDropdown = ({ children, open, onToggle }: CollectionDropdownProps) => {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
 
   return (
     <div>
@@ -25,7 +29,7 @@ export const CollectionDropdown = ({ children }: { children: React.ReactNode }) 
 
         <button
           type="button"
-          onClick={() => setOpen((o) => !o)}
+          onClick={onToggle}
           className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
           aria-label={open ? "Collapse collections" : "Expand collections"}
         >

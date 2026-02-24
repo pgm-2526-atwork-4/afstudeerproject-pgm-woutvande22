@@ -28,6 +28,7 @@ const navItems = [
 export const Sidebar = () => {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [collectionsOpen, setCollectionsOpen] = useState(false);
 
   return (
     <aside
@@ -75,7 +76,11 @@ export const Sidebar = () => {
 
           if (item.hasDropdown && !collapsed) {
             return (
-              <CollectionDropdown key={item.href}>
+              <CollectionDropdown
+                key={item.href}
+                open={collectionsOpen}
+                onToggle={() => setCollectionsOpen((o) => !o)}
+              >
                 {link}
               </CollectionDropdown>
             );
