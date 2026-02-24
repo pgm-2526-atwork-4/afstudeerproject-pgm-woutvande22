@@ -14,9 +14,11 @@ import {
   ChevronRightOutlined,
 } from "@mui/icons-material";
 
+import { CollectionDropdown } from "@/app/components/dashboard/CollectionDropdown";
+
 const navItems = [
   { label: "All Images", href: "/dashboard", icon: <ImageOutlined /> },
-  { label: "Your Collections", href: "/dashboard/collections", icon: <FolderSpecialOutlined /> },
+  { label: "Your Collections", href: "/dashboard/collections", icon: <FolderSpecialOutlined />, hasDropdown: true },
   { label: "Tags", href: "/dashboard/tags", icon: <LocalOfferOutlined /> },
   { label: "Settings", href: "/dashboard/settings", icon: <SettingsOutlined /> },
   { label: "Logout", href: "/", icon: <LogoutOutlined /> },
@@ -53,12 +55,12 @@ export const Sidebar = () => {
       <nav className="flex flex-col gap-1 flex-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
-          return (
+
+          const link = (
             <Link
-              key={item.href}
               href={item.href}
               title={collapsed ? item.label : undefined}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex-1 flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 collapsed ? "justify-center" : ""
               } ${
                 isActive
@@ -69,6 +71,22 @@ export const Sidebar = () => {
               <span className="text-xl">{item.icon}</span>
               {!collapsed && item.label}
             </Link>
+          );
+
+          if (item.hasDropdown && !collapsed) {
+            return (
+              <CollectionDropdown key={item.href}>
+                {link}
+              </CollectionDropdown>
+            );
+          }
+
+          return (
+            <div key={item.href}>
+              <div className="flex items-center">
+                {link}
+              </div>
+            </div>
           );
         })}
       </nav>
