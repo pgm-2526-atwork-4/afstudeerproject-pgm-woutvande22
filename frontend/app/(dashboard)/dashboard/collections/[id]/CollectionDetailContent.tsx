@@ -38,6 +38,7 @@ export function CollectionDetailContent({
           description={collection.description}
           imageCount={collection.imageCount}
           color={collection.color}
+          collectionId={collectionId}
         />
 
         <CollectionImageSearchBar />
