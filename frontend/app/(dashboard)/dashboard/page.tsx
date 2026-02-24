@@ -5,14 +5,14 @@ import { ImageGrid } from "@/app/components/dashboard/ImageGrid";
 import { GenerateCollectionButton } from "@/app/components/dashboard/GenerateCollectionButton";
 
 const images = [
-  { label: "Serif Elegance", color: "bg-[#1e3a30]", tags: ["typography", "branding"] },
-  { label: "Gradient Burst", color: "bg-[#c5dff0]", tags: ["color", "ui"] },
-  { label: "Grid System", color: "bg-[#d9a090]", tags: ["layout", "ui"] },
-  { label: "Brand Identity Kit", color: "bg-[#c9a96e]", tags: ["branding", "color"] },
-  { label: "Ink Botanicals", color: "bg-[#1e3a30]", tags: ["illustration", "texture"] },
-  { label: "Desert Light", color: "bg-[#8b7355]", tags: ["photography", "color"] },
-  { label: "Mono Type", color: "bg-[#4a86b5]", tags: ["typography", "layout"] },
-  { label: "Woven Linen", color: "bg-[#5a5a52]", tags: ["texture", "color"] },
+  { id: "serif-elegance", label: "Serif Elegance", color: "bg-[#1e3a30]", tags: ["typography", "branding"] },
+  { id: "gradient-burst", label: "Gradient Burst", color: "bg-[#c5dff0]", tags: ["color", "ui"] },
+  { id: "grid-system", label: "Grid System", color: "bg-[#d9a090]", tags: ["layout", "ui"] },
+  { id: "brand-identity-kit", label: "Brand Identity Kit", color: "bg-[#c9a96e]", tags: ["branding", "color"] },
+  { id: "ink-botanicals", label: "Ink Botanicals", color: "bg-[#1e3a30]", tags: ["illustration", "texture"] },
+  { id: "desert-light", label: "Desert Light", color: "bg-[#8b7355]", tags: ["photography", "color"] },
+  { id: "mono-type", label: "Mono Type", color: "bg-[#4a86b5]", tags: ["typography", "layout"] },
+  { id: "woven-linen", label: "Woven Linen", color: "bg-[#5a5a52]", tags: ["texture", "color"] },
 ];
 
 export default function DashboardPage() {

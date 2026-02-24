@@ -1,11 +1,14 @@
+import Link from "next/link";
+
 interface ImageCardProps {
+  id: string;
   label: string;
   color: string;
   tags: string[];
 }
 
-export const ImageCard = ({ label, color, tags }: ImageCardProps) => (
-  <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+export const ImageCard = ({ id, label, color, tags }: ImageCardProps) => (
+  <Link href={`/dashboard/${id}`} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow block">
     <div className={`${color} aspect-[4/3]`} />
     <div className="p-3">
       <p className="text-sm font-medium text-gray-900">{label}</p>
@@ -20,5 +23,5 @@ export const ImageCard = ({ label, color, tags }: ImageCardProps) => (
         ))}
       </div>
     </div>
-  </div>
+  </Link>
 );
