@@ -7,6 +7,7 @@ interface MoodboardCanvasProps {
   items: MoodboardItemData[];
   selectedId: string | null;
   zoom: number;
+  bgColor: string;
   onSelect: (id: string | null) => void;
   onMove: (id: string, x: number, y: number) => void;
   onScale: (id: string, scale: number) => void;
@@ -17,6 +18,7 @@ export function MoodboardCanvas({
   items,
   selectedId,
   zoom,
+  bgColor,
   onSelect,
   onMove,
   onScale,
@@ -82,7 +84,8 @@ export function MoodboardCanvas({
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-auto bg-white relative"
+      className="flex-1 overflow-hidden relative"
+      style={{ backgroundColor: bgColor }}
       onPointerDown={handleCanvasClick}
       onWheel={handleWheel}
       onMouseDown={(e) => { if (e.button === 1) e.preventDefault(); }}

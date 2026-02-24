@@ -36,6 +36,7 @@ export default function MoodboardPage() {
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [bgColor, setBgColor] = useState("#ffffff");
 
   const handleMove = useCallback((id: string, x: number, y: number) => {
     setItems((prev) =>
@@ -84,8 +85,10 @@ export default function MoodboardPage() {
         color={collection.color}
         collectionId={collectionId}
         zoom={zoom}
+        bgColor={bgColor}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
+        onBgColorChange={setBgColor}
         onExport={handleExport}
       />
 
@@ -93,6 +96,7 @@ export default function MoodboardPage() {
         items={items}
         selectedId={selectedId}
         zoom={zoom}
+        bgColor={bgColor}
         onSelect={setSelectedId}
         onMove={handleMove}
         onScale={handleScale}
