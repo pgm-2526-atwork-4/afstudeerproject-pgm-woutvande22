@@ -7,14 +7,18 @@ interface MoodboardToolbarProps {
   selectedItem: MoodboardItemData | null;
   onScale: (id: string, scale: number) => void;
   onRemove: (id: string) => void;
+  onUpdateItem?: (id: string, updates: Partial<MoodboardItemData>) => void;
 }
 
 export function MoodboardToolbar({
   selectedItem,
   onScale,
   onRemove,
+  onUpdateItem,
 }: MoodboardToolbarProps) {
   if (!selectedItem) return null;
+
+  const isText = selectedItem.type === "text";
 
   return (
     <footer className="flex items-center justify-between px-4 py-2 border-t border-gray-200 bg-white">
@@ -41,6 +45,41 @@ export function MoodboardToolbar({
         <span className="text-xs text-gray-400">
           Y: {Math.round(selectedItem.y)}
         </span>
+
+        {isText && (
+          <>
+            <div className="w-px h-4 bg-gray-200" />
+
+            <label className="flex items-center gap-1.5 text-xs text-gray-500">
+              Size:
+              <input
+                type="number"
+                value={selectedItem.fontSize ?? 16}
+                onChange={(e) => {
+                  const size = Math.max(8, Math.min(200, Number(e.target.value) || 16));
+                  onUpdateItem?.(selectedItem.id, { fontSize: size });
+                }}
+                className="w-14 px-1.5 py-1 border border-gray-200 rounded text-xs text-gray-700 tabular-nums"
+                min={8}
+                max={200}
+                step={1}
+              />
+              <span className="text-xs text-gray-400">px</span>
+            </label>
+
+            <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+              Color:
+              <input
+                type="color"
+                value={selectedItem.textColor ?? "#000000"}
+                onChange={(e) => {
+                  onUpdateItem?.(selectedItem.id, { textColor: e.target.value });
+                }}
+                className="w-6 h-6 rounded border border-gray-200 cursor-pointer p-0 appearance-none [&::-webkit-color-swatch-wrapper]:p-0.5 [&::-webkit-color-swatch]:rounded"
+              />
+            </label>
+          </>
+        )}
       </div>
 
       <button

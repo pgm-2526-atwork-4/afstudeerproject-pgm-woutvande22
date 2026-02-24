@@ -12,6 +12,7 @@ interface MoodboardCanvasProps {
   onMove: (id: string, x: number, y: number) => void;
   onScale: (id: string, scale: number) => void;
   onZoomChange: (zoom: number) => void;
+  onTextChange?: (id: string, text: string) => void;
 }
 
 export function MoodboardCanvas({
@@ -23,6 +24,7 @@ export function MoodboardCanvas({
   onMove,
   onScale,
   onZoomChange,
+  onTextChange,
 }: MoodboardCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const panStartRef = useRef<{ startX: number; startY: number; scrollLeft: number; scrollTop: number } | null>(null);
@@ -109,6 +111,7 @@ export function MoodboardCanvas({
             onSelect={onSelect}
             onMove={onMove}
             onScale={onScale}
+            onTextChange={onTextChange}
           />
         ))}
       </div>
