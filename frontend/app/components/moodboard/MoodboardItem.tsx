@@ -10,6 +10,7 @@ export interface MoodboardItemData {
   x: number;
   y: number;
   scale: number;
+  zIndex?: number;
   baseWidth?: number;
   baseHeight?: number;
   /** Text-item–only fields */
@@ -134,6 +135,7 @@ export function MoodboardItem({
         position: "absolute",
         left: item.x,
         top: item.y,
+        zIndex: item.zIndex ?? 0,
         width: w,
         height: isText ? "auto" : h,
         minHeight: isText ? 30 * item.scale : undefined,

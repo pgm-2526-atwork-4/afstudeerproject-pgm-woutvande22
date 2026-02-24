@@ -1,6 +1,10 @@
 "use client";
 
-import { DeleteOutlined } from "@mui/icons-material";
+import {
+  DeleteOutlined,
+  FlipToFrontOutlined,
+  FlipToBackOutlined,
+} from "@mui/icons-material";
 import { MoodboardItemData } from "./MoodboardItem";
 
 interface MoodboardToolbarProps {
@@ -8,6 +12,8 @@ interface MoodboardToolbarProps {
   onScale: (id: string, scale: number) => void;
   onRemove: (id: string) => void;
   onUpdateItem?: (id: string, updates: Partial<MoodboardItemData>) => void;
+  onBringForward?: (id: string) => void;
+  onSendBackward?: (id: string) => void;
 }
 
 export function MoodboardToolbar({
@@ -15,6 +21,8 @@ export function MoodboardToolbar({
   onScale,
   onRemove,
   onUpdateItem,
+  onBringForward,
+  onSendBackward,
 }: MoodboardToolbarProps) {
   if (!selectedItem) return null;
 
@@ -82,14 +90,38 @@ export function MoodboardToolbar({
         )}
       </div>
 
-      <button
-        type="button"
-        onClick={() => onRemove(selectedItem.id)}
-        className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 transition-colors cursor-pointer"
-      >
-        <DeleteOutlined sx={{ fontSize: 16 }} />
-        Remove
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onBringForward?.(selectedItem.id)}
+          className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors cursor-pointer"
+          title="Bring Forward"
+        >
+          <FlipToFrontOutlined sx={{ fontSize: 16 }} />
+          Forward
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onSendBackward?.(selectedItem.id)}
+          className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors cursor-pointer"
+          title="Send Backward"
+        >
+          <FlipToBackOutlined sx={{ fontSize: 16 }} />
+          Backward
+        </button>
+
+        <div className="w-px h-4 bg-gray-200" />
+
+        <button
+          type="button"
+          onClick={() => onRemove(selectedItem.id)}
+          className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 transition-colors cursor-pointer"
+        >
+          <DeleteOutlined sx={{ fontSize: 16 }} />
+          Remove
+        </button>
+      </div>
     </footer>
   );
 }

@@ -18,11 +18,11 @@ const collections: Record<string, { title: string; color: string }> = {
 
 const collectionMoodboardImages: Record<string, MoodboardItemData[]> = {
   "brand-assets-2024": [
-    { id: "img-1", type: "image", label: "Image 1", color: "#9b7dd4", x: 120, y: 100, scale: 1.2 },
-    { id: "img-2", type: "image", label: "Image 2", color: "#e84393", x: 360, y: 60, scale: 1.3 },
-    { id: "img-3", type: "image", label: "Image 3", color: "#00b894", x: 620, y: 100, scale: 1.1 },
-    { id: "img-4", type: "image", label: "Image 4", color: "#f39c12", x: 100, y: 320, scale: 1.3 },
-    { id: "img-5", type: "image", label: "Image 5", color: "#3498db", x: 380, y: 340, scale: 1.2 },
+    { id: "img-1", type: "image", label: "Image 1", color: "#9b7dd4", x: 120, y: 100, scale: 1.2, zIndex: 0 },
+    { id: "img-2", type: "image", label: "Image 2", color: "#e84393", x: 360, y: 60, scale: 1.3, zIndex: 1 },
+    { id: "img-3", type: "image", label: "Image 3", color: "#00b894", x: 620, y: 100, scale: 1.1, zIndex: 2 },
+    { id: "img-4", type: "image", label: "Image 4", color: "#f39c12", x: 100, y: 320, scale: 1.3, zIndex: 3 },
+    { id: "img-5", type: "image", label: "Image 5", color: "#3498db", x: 380, y: 340, scale: 1.2, zIndex: 4 },
   ],
 };
 
@@ -57,21 +57,25 @@ export default function MoodboardPage() {
 
   const handleAddText = useCallback(() => {
     const id = `text-${Date.now()}`;
-    const newItem: MoodboardItemData = {
-      id,
-      type: "text",
-      label: "",
-      color: "transparent",
-      x: 200,
-      y: 200,
-      scale: 1,
-      text: "Type here…",
-      fontSize: 24,
-      textColor: "#000000",
-      baseWidth: 200,
-      baseHeight: 40,
-    };
-    setItems((prev) => [...prev, newItem]);
+    setItems((prev) => {
+      const maxZ = prev.length > 0 ? Math.max(...prev.map((i) => i.zIndex ?? 0)) : 0;
+      const newItem: MoodboardItemData = {
+        id,
+        type: "text",
+        label: "",
+        color: "transparent",
+        x: 200,
+        y: 200,
+        scale: 1,
+        text: "Type here…",
+        fontSize: 24,
+        textColor: "#000000",
+        baseWidth: 200,
+        baseHeight: 40,
+        zIndex: maxZ + 1,
+      };
+      return [...prev, newItem];
+    });
     setSelectedId(id);
   }, []);
 
@@ -85,6 +89,24 @@ export default function MoodboardPage() {
     setItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
     );
+  }, []);
+
+  const handleBringForward = useCallback((id: string) => {
+    setItems((prev) => {
+      const maxZ = Math.max(...prev.map((i) => i.zIndex ?? 0));
+      return prev.map((item) =>
+        item.id === id ? { ...item, zIndex: maxZ + 1 } : item
+      );
+    });
+  }, []);
+
+  const handleSendBackward = useCallback((id: string) => {
+    setItems((prev) => {
+      const minZ = Math.min(...prev.map((i) => i.zIndex ?? 0));
+      return prev.map((item) =>
+        item.id === id ? { ...item, zIndex: minZ - 1 } : item
+      );
+    });
   }, []);
 
   const handleZoomIn = useCallback(() => {
@@ -142,6 +164,8 @@ export default function MoodboardPage() {
         onScale={handleScale}
         onRemove={handleRemove}
         onUpdateItem={handleUpdateItem}
+        onBringForward={handleBringForward}
+        onSendBackward={handleSendBackward}
       />
     </>
   );
