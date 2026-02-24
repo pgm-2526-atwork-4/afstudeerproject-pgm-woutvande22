@@ -32,10 +32,11 @@ export function SortableGridItem({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className={className}>
+    <div ref={setNodeRef} style={style} className={`group ${className}`}>
       <button
         {...attributes}
         {...listeners}
+        className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
         style={{
           position: 'absolute',
           top: '8px',

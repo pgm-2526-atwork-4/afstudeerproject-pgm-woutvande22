@@ -34,13 +34,13 @@ export function SortableItem({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className={className}>
+    <div ref={setNodeRef} style={style} className={`group ${className}`}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         {showHandle && (
           <button
             {...attributes}
             {...listeners}
-            className="drag-handle"
+            className="drag-handle opacity-0 group-hover:opacity-100 transition-opacity duration-200"
             style={{
               cursor: isDragging ? 'grabbing' : 'grab',
               border: 'none',
