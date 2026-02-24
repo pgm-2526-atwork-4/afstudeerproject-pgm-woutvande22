@@ -17,7 +17,12 @@ export const ImageDetailsForm = ({ title, size, tags }: ImageDetailsFormProps) =
   >
     <FormInput id="title" label="Title" placeholder={title} />
 
-    <FormInput id="size" label="Size" placeholder={size} />
+    <div className="flex flex-col gap-1.5">
+      <span className="text-sm font-medium text-gray-700">Size</span>
+      <p className="px-4 py-2.5 border border-gray-200 rounded-lg text-sm text-gray-500 bg-gray-50">
+        {size}
+      </p>
+    </div>
 
     <TagList tags={tags} />
 
