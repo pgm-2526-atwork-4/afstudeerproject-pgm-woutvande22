@@ -5,10 +5,11 @@ interface ImageCardProps {
   label: string;
   color: string;
   tags: string[];
+  collectionId?: string;
 }
 
-export const ImageCard = ({ id, label, color, tags }: ImageCardProps) => (
-  <Link href={`/dashboard/${id}`} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow block">
+export const ImageCard = ({ id, label, color, tags, collectionId }: ImageCardProps) => (
+  <Link href={collectionId ? `/dashboard/${id}?collection=${collectionId}` : `/dashboard/${id}`} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow block">
     <div className={`${color} aspect-[4/3]`} />
     <div className="p-3">
       <p className="text-sm font-medium text-gray-900">{label}</p>

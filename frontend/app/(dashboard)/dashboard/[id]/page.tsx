@@ -17,10 +17,12 @@ const images: Record<string, { label: string; color: string; size: string; tags:
 
 interface ImageDetailPageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ collection?: string }>;
 }
 
-export default async function ImageDetailPage({ params }: ImageDetailPageProps) {
+export default async function ImageDetailPage({ params, searchParams }: ImageDetailPageProps) {
   const { id } = await params;
+  const { collection } = await searchParams;
   const image = images[id];
 
   if (!image) {
@@ -42,10 +44,10 @@ export default async function ImageDetailPage({ params }: ImageDetailPageProps) 
           description="Edit and manage your image details"
         />
         <Link
-          href="/dashboard"
+          href={collection ? `/dashboard/collections/${collection}` : "/dashboard"}
           className="flex items-center gap-2 px-5 py-2.5 bg-sky-400 hover:bg-sky-500 text-white text-sm font-semibold rounded-lg transition-colors"
         >
-          ← Back to Collection
+          {collection ? "← Back to Collection" : "← Back to All Images"}
         </Link>
       </div>
 

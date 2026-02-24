@@ -60,7 +60,7 @@ export default async function CollectionDetailPage({ params }: CollectionDetailP
       </div>
 
       <div className="px-8">
-        <ImageGrid images={images} />
+        <ImageGrid images={images} collectionId={id} />
       </div>
     </article>
   );
