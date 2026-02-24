@@ -1,7 +1,6 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { DragIndicator } from '@mui/icons-material';
 
 interface SortableGridItemProps {
   id: string | number;
@@ -29,33 +28,18 @@ export function SortableGridItem({
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 1000 : 'auto',
     position: 'relative' as const,
+    cursor: isDragging ? 'grabbing' : 'grab',
+    touchAction: 'none',
   };
 
   return (
-    <div ref={setNodeRef} style={style} className={`group ${className}`}>
-      <button
-        {...attributes}
-        {...listeners}
-        className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-        style={{
-          position: 'absolute',
-          top: '8px',
-          left: '8px',
-          cursor: isDragging ? 'grabbing' : 'grab',
-          border: 'none',
-          background: 'rgba(0, 0, 0, 0.5)',
-          borderRadius: '4px',
-          padding: '4px',
-          display: 'flex',
-          alignItems: 'center',
-          color: '#ffffff',
-          zIndex: 10,
-          touchAction: 'none',
-        }}
-        aria-label="Drag to reorder"
-      >
-        <DragIndicator sx={{ fontSize: 16 }} />
-      </button>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={className}
+      {...attributes}
+      {...listeners}
+    >
       {children}
     </div>
   );
