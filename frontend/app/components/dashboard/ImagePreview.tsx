@@ -21,7 +21,7 @@ export const ImagePreview = ({ color, alt, prevHref, nextHref }: ImagePreviewPro
     {prevHref && (
       <Link
         href={prevHref}
-        className="absolute left-2 top-1/2 -translate-y-1/2 drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]"
+        className="absolute left-2 top-1/2 -translate-y-1/2 drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] opacity-0 group-hover:opacity-100 transition-opacity"
         aria-label="Previous image"
       >
         <ChevronLeftIcon className="text-white" sx={{ fontSize: 48 }} />
@@ -31,7 +31,7 @@ export const ImagePreview = ({ color, alt, prevHref, nextHref }: ImagePreviewPro
     {nextHref && (
       <Link
         href={nextHref}
-        className="absolute right-2 top-1/2 -translate-y-1/2 drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)]"
+        className="absolute right-2 top-1/2 -translate-y-1/2 drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] opacity-0 group-hover:opacity-100 transition-opacity"
         aria-label="Next image"
       >
         <ChevronRightIcon className="text-white" sx={{ fontSize: 48 }} />
