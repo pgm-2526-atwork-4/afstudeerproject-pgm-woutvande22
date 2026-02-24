@@ -96,6 +96,7 @@ export default function MoodboardPage() {
         onSelect={setSelectedId}
         onMove={handleMove}
         onScale={handleScale}
+        onZoomChange={setZoom}
       />
 
       <MoodboardToolbar

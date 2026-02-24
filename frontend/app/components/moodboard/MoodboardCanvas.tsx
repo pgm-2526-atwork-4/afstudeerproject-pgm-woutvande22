@@ -10,6 +10,7 @@ interface MoodboardCanvasProps {
   onSelect: (id: string | null) => void;
   onMove: (id: string, x: number, y: number) => void;
   onScale: (id: string, scale: number) => void;
+  onZoomChange: (zoom: number) => void;
 }
 
 export function MoodboardCanvas({
@@ -19,6 +20,7 @@ export function MoodboardCanvas({
   onSelect,
   onMove,
   onScale,
+  onZoomChange,
 }: MoodboardCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -31,11 +33,24 @@ export function MoodboardCanvas({
     [onSelect]
   );
 
+  const handleWheel = useCallback(
+    (e: React.WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.05 : 0.05;
+        const newZoom = Math.min(2, Math.max(0.25, zoom + delta));
+        onZoomChange(Math.round(newZoom * 100) / 100);
+      }
+    },
+    [zoom, onZoomChange]
+  );
+
   return (
     <div
       ref={containerRef}
       className="flex-1 overflow-auto bg-white relative"
       onPointerDown={handleCanvasClick}
+      onWheel={handleWheel}
     >
       <div
         style={{
