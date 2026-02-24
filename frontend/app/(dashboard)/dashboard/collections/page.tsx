@@ -1,9 +1,12 @@
+"use client";
+
+import { useState } from "react";
 import { PageHeader } from "@/app/components/dashboard/PageHeader";
 import { CollectionSearchBar } from "@/app/components/dashboard/CollectionSearchBar";
 import { CollectionGrid } from "@/app/components/dashboard/CollectionGrid";
 import { GenerateCollectionButton } from "@/app/components/dashboard/GenerateCollectionButton";
 
-const collections = [
+const initialCollections = [
   { id: "brand-assets-2024", title: "Brand Assets 2024", description: "Logo designs and brand identity", imageCount: 24, color: "#4a86b5" },
   { id: "ui-inspiration", title: "UI Inspiration", description: "Modern interface designs", imageCount: 18, color: "#c5dff0" },
   { id: "typography-studies", title: "Typography Studies", description: "Experimental type work", imageCount: 32, color: "#1e3a30" },
@@ -13,6 +16,8 @@ const collections = [
 ];
 
 export default function CollectionsPage() {
+  const [collections, setCollections] = useState(initialCollections);
+
   return (
     <div className="pb-24">
       <div className="sticky top-0 z-10 px-8 pt-8 pb-4 bg-gray-50/80 backdrop-blur-md">
@@ -33,7 +38,7 @@ export default function CollectionsPage() {
       </div>
 
       <div className="px-8">
-        <CollectionGrid collections={collections} />
+        <CollectionGrid collections={collections} onReorder={setCollections} />
       </div>
 
       <GenerateCollectionButton />

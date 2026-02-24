@@ -1,10 +1,13 @@
+"use client";
+
+import { useState } from "react";
 import { PageHeader } from "@/app/components/dashboard/PageHeader";
 import { UploadButton } from "@/app/components/dashboard/UploadButton";
 import { SearchFilterBar } from "@/app/components/dashboard/SearchbarFilterBar";
 import { ImageGrid } from "@/app/components/dashboard/ImageGrid";
 import { GenerateCollectionButton } from "@/app/components/dashboard/GenerateCollectionButton";
 
-const images = [
+const initialImages = [
   { id: "serif-elegance", label: "Serif Elegance", color: "bg-[#1e3a30]", tags: ["typography", "branding"] },
   { id: "gradient-burst", label: "Gradient Burst", color: "bg-[#c5dff0]", tags: ["color", "ui"] },
   { id: "grid-system", label: "Grid System", color: "bg-[#d9a090]", tags: ["layout", "ui"] },
@@ -16,6 +19,8 @@ const images = [
 ];
 
 export default function DashboardPage() {
+  const [images, setImages] = useState(initialImages);
+
   return (
     <div className="pb-24">
       <div className="sticky top-0 z-10 px-8 pt-8 pb-4 bg-gray-50/80 backdrop-blur-md">
@@ -31,7 +36,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="px-8">
-        <ImageGrid images={images} />
+        <ImageGrid images={images} onReorder={setImages} />
       </div>
 
       <GenerateCollectionButton />
