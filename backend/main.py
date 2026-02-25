@@ -4,27 +4,21 @@ load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from supabase import create_client, Client
-import os
+from routes.auth import router as auth_router
 
-app = FastAPI()
+app = FastAPI(title="AI Image Tagger & Moodboarder API")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Register routers
+app.include_router(auth_router)
 
 @app.get("/api/status")
 async def get_status():
     return {"message": "De verbinding met Python werkt!"}
-
-@app.get("/api/images")
-async def get_images():
-    response = supabase.table("images").select("*").execute()
-    return response.data
