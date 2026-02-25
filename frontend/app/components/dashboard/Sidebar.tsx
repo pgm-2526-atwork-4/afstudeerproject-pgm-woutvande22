@@ -15,13 +15,13 @@ import {
 } from "@mui/icons-material";
 
 import { CollectionDropdown } from "@/app/components/dashboard/CollectionDropdown";
+import { useAuth } from "@/app/context/AuthContext";
 
 const navItems = [
   { label: "All Images", href: "/dashboard", icon: <ImageOutlined /> },
   { label: "Your Collections", href: "/dashboard/collections", icon: <FolderSpecialOutlined />, hasDropdown: true },
   { label: "Tags", href: "/dashboard/tags", icon: <LocalOfferOutlined /> },
   { label: "Settings", href: "/dashboard/settings", icon: <SettingsOutlined /> },
-  { label: "Logout", href: "/", icon: <LogoutOutlined /> },
 ];
 
 
@@ -29,6 +29,7 @@ export const Sidebar = () => {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [collectionsOpen, setCollectionsOpen] = useState(false);
+  const { logout } = useAuth();
 
   return (
     <aside
@@ -95,6 +96,18 @@ export const Sidebar = () => {
           );
         })}
       </nav>
+
+      <button
+        type="button"
+        onClick={logout}
+        title={collapsed ? "Logout" : undefined}
+        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer ${
+          collapsed ? "justify-center" : ""
+        }`}
+      >
+        <span className="text-xl"><LogoutOutlined /></span>
+        {!collapsed && "Logout"}
+      </button>
     </aside>
   );
 };

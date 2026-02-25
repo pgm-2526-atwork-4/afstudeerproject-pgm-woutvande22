@@ -1,7 +1,10 @@
+import logging
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr
 from dependencies import get_supabase
 from supabase_auth.errors import AuthApiError
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
@@ -53,13 +56,15 @@ def register(body: RegisterRequest):
 
     # Create a row in the public.users table
     full_name = f"{body.first_name} {body.last_name}"
-    supabase.table("users").insert({
-        "id": user.id,
-        "name": full_name,
-        "email": body.email,
-        "current_storage_mb": 0,
-        "subscription_id": 1,  # default/free tier
-    }).execute()
+    try:
+        supabase.table("users").insert({
+            "id": user.id,
+            "name": full_name,
+            "email": body.email,
+            "current_storage_mb": 0,
+        }).execute()
+    except Exception as e:
+        logger.error(f"Failed to create user profile: {e}")
 
     if not session:
         # Email confirmation is enabled – user must verify first
@@ -99,7 +104,7 @@ def login(body: LoginRequest):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     # Fetch the profile from public.users
-    profile = supabase.table("users").select("*").eq("id", user.id).single().execute()
+    profile = supabase.table("users").select("*").eq("id", user.id).maybe_single().execute()
 
     return AuthResponse(
         access_token=session.access_token,
@@ -124,7 +129,7 @@ def get_current_user(access_token: str):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    profile = supabase.table("users").select("*").eq("id", user.id).single().execute()
+    profile = supabase.table("users").select("*").eq("id", user.id).maybe_single().execute()
     return profile.data if profile.data else {"id": user.id, "email": user.email}
 
 

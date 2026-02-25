@@ -7,12 +7,18 @@ interface PasswordInputProps {
   id: string;
   label: string;
   placeholder?: string;
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  required?: boolean;
 }
 
 export const PasswordInput = ({
   id,
   label,
   placeholder,
+  value,
+  onChange,
+  required,
 }: PasswordInputProps) => {
   const [visible, setVisible] = useState(false);
 
@@ -27,6 +33,9 @@ export const PasswordInput = ({
           name={id}
           type={visible ? "text" : "password"}
           placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          required={required}
           className="w-full px-4 py-2.5 pr-11 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-shadow"
         />
         <button
