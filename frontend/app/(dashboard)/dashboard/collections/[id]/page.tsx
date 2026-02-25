@@ -1,6 +1,4 @@
-import { CollectionHeader } from "@/app/components/dashboard/CollectionHeader";
-import { CollectionImageSearchBar } from "@/app/components/dashboard/CollectionImageSearchBar";
-import { ImageGrid } from "@/app/components/dashboard/ImageGrid";
+import { CollectionDetailContent } from "./CollectionDetailContent";
 
 const collections: Record<string, { title: string; description: string; imageCount: number; color: string }> = {
   "brand-assets-2024": { title: "Brand Assets 2024", description: "Logo designs and brand identity", imageCount: 24, color: "#4a86b5" },
@@ -47,21 +45,10 @@ export default async function CollectionDetailPage({ params }: CollectionDetailP
   const images = collectionImages[id] ?? [];
 
   return (
-    <article className="pb-24">
-      <div className="sticky top-0 z-10 px-8 pt-6 pb-4 bg-gray-50/80 backdrop-blur-md">
-        <CollectionHeader
-          title={collection.title}
-          description={collection.description}
-          imageCount={collection.imageCount}
-          color={collection.color}
-        />
-
-        <CollectionImageSearchBar />
-      </div>
-
-      <div className="px-8">
-        <ImageGrid images={images} collectionId={id} />
-      </div>
-    </article>
+    <CollectionDetailContent
+      collection={collection}
+      images={images}
+      collectionId={id}
+    />
   );
 }

@@ -6,6 +6,7 @@ interface CollectionHeaderProps {
   description: string;
   imageCount: number;
   color: string;
+  collectionId?: string;
 }
 
 export const CollectionHeader = ({
@@ -13,6 +14,7 @@ export const CollectionHeader = ({
   description,
   imageCount,
   color,
+  collectionId,
 }: CollectionHeaderProps) => (
   <div>
     <Link
@@ -25,7 +27,7 @@ export const CollectionHeader = ({
     <div className="flex items-center justify-between">
       <div className="flex items-center gap-5">
         <div
-          className="w-20 h-20 rounded-xl flex items-center justify-center flex-shrink-0"
+          className="w-20 h-20 rounded-xl flex items-center justify-center shrink-0"
           style={{ backgroundColor: color }}
         >
           <div className="flex items-center gap-1 text-white/60">
@@ -41,13 +43,13 @@ export const CollectionHeader = ({
         </div>
       </div>
 
-      <button
-        type="button"
+      <Link
+        href={collectionId ? `/moodboard/${collectionId}` : "#"}
         className="flex items-center gap-2 px-5 py-2.5 bg-sky-400 hover:bg-sky-500 text-white text-sm font-semibold rounded-lg transition-colors cursor-pointer"
       >
         <GridViewOutlined sx={{ fontSize: 18 }} />
         Create Moodboard
-      </button>
+      </Link>
     </div>
   </div>
 );
