@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -22,6 +22,22 @@ export function SortableItem({
     isDragging,
   } = useSortable({ id });
 
+  const wasDragged = useRef(false);
+
+  useEffect(() => {
+    if (isDragging) {
+      wasDragged.current = true;
+    }
+  }, [isDragging]);
+
+  const handleClickCapture = (e: React.MouseEvent) => {
+    if (wasDragged.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      wasDragged.current = false;
+    }
+  };
+
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -39,6 +55,7 @@ export function SortableItem({
       className={className}
       {...attributes}
       {...listeners}
+      onClickCapture={handleClickCapture}
     >
       {children}
     </div>
