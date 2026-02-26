@@ -188,3 +188,103 @@ def get_my_photos(access_token: str = Query(...)):
     )
 
     return PhotoListResponse(photos=result.data, count=len(result.data))
+
+# get a single phoot
+
+@router.get("/{photo_id}", response_model=PhotoResponse)
+def get_photo(photo_id: int, access_token: str = Query(...)):
+    """Return a single photo by ID (must belong to the authenticated user)."""
+    supabase = get_supabase()
+
+    try:
+        user_response = supabase.auth.get_user(access_token)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+    user = user_response.user
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    result = (
+        supabase.table("photos")
+        .select("*")
+        .eq("id", photo_id)
+        .eq("user_id", user.id)
+        .maybe_single()
+        .execute()
+    )
+
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    return PhotoResponse(**result.data)
+
+# Delete photo
+
+@router.delete("/{photo_id}", status_code=204)
+def delete_photo(photo_id: int, access_token: str = Query(...)):
+    """Delete a photo and remove it from storage."""
+    supabase = get_supabase()
+
+    try:
+        user_response = supabase.auth.get_user(access_token)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+    user = user_response.user
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    # Fetch the photo to get the URL for storage deletion
+    result = (
+        supabase.table("photos")
+        .select("*")
+        .eq("id", photo_id)
+        .eq("user_id", user.id)
+        .maybe_single()
+        .execute()
+    )
+
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    photo = result.data
+    file_size_mb = photo.get("file_size_mb", 0)
+
+    # Extract storage path from URL
+    url: str = photo["url"]
+    try:
+        # URL format: .../storage/v1/object/public/photos/user_id/filename.ext
+        storage_path = url.split(f"/{BUCKET_NAME}/")[1]
+        supabase.storage.from_(BUCKET_NAME).remove([storage_path])
+    except Exception as e:
+        logger.error(f"Failed to delete file from storage: {e}")
+
+    # Delete junction records (collections_to_photos, photos_to_tags)
+    try:
+        supabase.table("collections_to_photos").delete().eq("photo_id", photo_id).execute()
+        supabase.table("photos_to_tags").delete().eq("photo_id", photo_id).execute()
+    except Exception as e:
+        logger.error(f"Failed to clean up junction records: {e}")
+
+    # Delete the photo record
+    supabase.table("photos").delete().eq("id", photo_id).execute()
+
+    # Update user storage
+    try:
+        profile = (
+            supabase.table("users")
+            .select("current_storage_mb")
+            .eq("id", user.id)
+            .maybe_single()
+            .execute()
+        )
+        if profile.data:
+            new_storage = max(0, profile.data.get("current_storage_mb", 0) - file_size_mb)
+            supabase.table("users").update({
+                "current_storage_mb": new_storage
+            }).eq("id", user.id).execute()
+    except Exception as e:
+        logger.error(f"Failed to update user storage: {e}")
+
+    return None
