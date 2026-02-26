@@ -164,3 +164,27 @@ async def upload_photo(
 
     return PhotoResponse(**photo)
 
+# get all photos for user
+
+@router.get("/", response_model=PhotoListResponse)
+def get_my_photos(access_token: str = Query(...)):
+    """Return all photos belonging to the authenticated user."""
+    supabase = get_supabase()
+
+    try:
+        user_response = supabase.auth.get_user(access_token)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+    user = user_response.user
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    result = (
+        supabase.table("photos")
+        .select("*")
+        .eq("user_id", user.id)
+        .execute()
+    )
+
+    return PhotoListResponse(photos=result.data, count=len(result.data))
