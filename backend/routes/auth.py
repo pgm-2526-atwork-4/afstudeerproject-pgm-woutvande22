@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
 
-# ── Schemas ──────────────────────────────────────────────
+# Schemas
 
 class RegisterRequest(BaseModel):
     first_name: str
@@ -27,7 +27,7 @@ class AuthResponse(BaseModel):
     user: dict
 
 
-# ── Register ─────────────────────────────────────────────
+#  Register 
 
 @router.post("/register", response_model=AuthResponse, status_code=201)
 def register(body: RegisterRequest):
@@ -82,7 +82,7 @@ def register(body: RegisterRequest):
     )
 
 
-# ── Login ────────────────────────────────────────────────
+# Login 
 
 @router.post("/login", response_model=AuthResponse)
 def login(body: LoginRequest):
@@ -113,7 +113,7 @@ def login(body: LoginRequest):
     )
 
 
-# ── Get current user (from token) ───────────────────────
+#  Get current user (from token) 
 
 @router.get("/me")
 def get_current_user(access_token: str):
@@ -133,7 +133,7 @@ def get_current_user(access_token: str):
     return profile.data if profile.data else {"id": user.id, "email": user.email}
 
 
-# ── Logout ───────────────────────────────────────────────
+# Logout 
 
 @router.post("/logout", status_code=204)
 def logout(access_token: str):
