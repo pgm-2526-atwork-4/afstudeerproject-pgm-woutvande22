@@ -5,6 +5,7 @@ export interface Photo {
   url: string;
   user_id: string;
   file_size_mb: number;
+  order_id: number;
 }
 
 export async function uploadPhoto(
@@ -54,5 +55,24 @@ export async function deletePhoto(
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.detail || "Delete failed");
+  }
+}
+
+export async function reorderPhotos(
+  accessToken: string,
+  photos: { id: number; order_id: number }[]
+): Promise<void> {
+  const res = await fetch(
+    `${API_URL}/api/photos/reorder?access_token=${encodeURIComponent(accessToken)}`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ photos }),
+    }
+  );
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || "Reorder failed");
   }
 }

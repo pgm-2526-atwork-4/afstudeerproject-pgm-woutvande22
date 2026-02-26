@@ -4,11 +4,11 @@ import { ImageCard } from "./ImageCard";
 import { SortableList } from "../dnd/SortableList";
 import { SortableGridItem } from "../dnd/SortableGridItem";
 
-interface ImageItem {
+export interface ImageItem {
   id: string;
-  label: string;
-  color: string;
-  tags: string[];
+  label?: string;
+  url?: string;
+  tags?: string[];
 }
 
 interface ImageGridProps {
@@ -28,7 +28,7 @@ export const ImageGrid = ({ images, collectionId, onReorder }: ImageGridProps) =
         <ImageCard
           id={image.id}
           label={image.label}
-          color={image.color}
+          url={image.url}
           tags={image.tags}
           collectionId={collectionId}
         />

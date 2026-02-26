@@ -1,56 +1,62 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useParams, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/app/components/dashboard/PageHeader";
 import { ImagePreview } from "@/app/components/dashboard/ImagePreview";
 import { ImageDetailsForm } from "@/app/components/dashboard/ImageDetailsForm";
+import { type Photo, fetchPhotos } from "@/app/lib/photos";
 
-// Static data — will be replaced with real fetching later
-const images: Record<string, { label: string; color: string; size: string; tags: string[] }> = {
-  "serif-elegance": { label: "Serif Elegance", color: "#1e3a30", size: "1920×1080", tags: ["typography", "branding"] },
-  "gradient-burst": { label: "Gradient Burst", color: "#c5dff0", size: "1920×1080", tags: ["color", "ui"] },
-  "grid-system": { label: "Grid System", color: "#d9a090", size: "1920×1080", tags: ["layout", "ui"] },
-  "brand-identity-kit": { label: "Brand Identity Kit", color: "#c9a96e", size: "1920×1080", tags: ["branding", "color"] },
-  "ink-botanicals": { label: "Ink Botanicals", color: "#1e3a30", size: "1920×1080", tags: ["illustration", "texture"] },
-  "desert-light": { label: "Desert Light", color: "#8b7355", size: "1920×1080", tags: ["photography", "color"] },
-  "mono-type": { label: "Mono Type", color: "#4a86b5", size: "1920×1080", tags: ["typography", "layout"] },
-  "woven-linen": { label: "Woven Linen", color: "#5a5a52", size: "1920×1080", tags: ["texture", "color"] },
-};
+export default function ImageDetailPage() {
+  const params = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const id = params.id;
+  const collection = searchParams.get("collection") ?? undefined;
 
-const collectionImages: Record<string, string[]> = {
-  "brand-assets-2024": [
-    "serif-elegance", "gradient-burst", "grid-system", "brand-identity-kit",
-    "ink-botanicals", "desert-light", "mono-type", "woven-linen",
-    "dashboard-ui", "brush-strokes", "bold-architecture", "editorial-spread",
-  ],
-};
+  const [photo, setPhoto] = useState<Photo | null>(null);
+  const [allIds, setAllIds] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
-interface ImageDetailPageProps {
-  params: Promise<{ id: string }>;
-  searchParams: Promise<{ collection?: string }>;
-}
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      setLoading(false);
+      return;
+    }
 
-export default async function ImageDetailPage({ params, searchParams }: ImageDetailPageProps) {
-  const { id } = await params;
-  const { collection } = await searchParams;
-  const image = images[id];
+    fetchPhotos(token)
+      .then((photos) => {
+        const ids = photos.map((p) => String(p.id));
+        setAllIds(ids);
+        const found = photos.find((p) => String(p.id) === id);
+        setPhoto(found ?? null);
+      })
+      .catch((err) => console.error("Failed to load photo:", err))
+      .finally(() => setLoading(false));
+  }, [id]);
 
-  // Compute prev/next image hrefs
-  let prevHref: string | undefined;
-  let nextHref: string | undefined;
-
-  const ids = collection && collectionImages[collection]
-    ? collectionImages[collection]
-    : Object.keys(images);
-  const currentIndex = ids.indexOf(id);
+  // Compute prev/next
+  const currentIndex = allIds.indexOf(id);
   const collectionParam = collection ? `?collection=${collection}` : "";
+  const prevHref =
+    currentIndex > 0
+      ? `/dashboard/${allIds[currentIndex - 1]}${collectionParam}`
+      : undefined;
+  const nextHref =
+    currentIndex >= 0 && currentIndex < allIds.length - 1
+      ? `/dashboard/${allIds[currentIndex + 1]}${collectionParam}`
+      : undefined;
 
-  if (currentIndex > 0) {
-    prevHref = `/dashboard/${ids[currentIndex - 1]}${collectionParam}`;
-  }
-  if (currentIndex >= 0 && currentIndex < ids.length - 1) {
-    nextHref = `/dashboard/${ids[currentIndex + 1]}${collectionParam}`;
+  if (loading) {
+    return (
+      <div className="p-8">
+        <p className="text-gray-500 text-sm">Loading...</p>
+      </div>
+    );
   }
 
-  if (!image) {
+  if (!photo) {
     return (
       <div className="p-8">
         <p className="text-gray-500">Image not found.</p>
@@ -77,13 +83,18 @@ export default async function ImageDetailPage({ params, searchParams }: ImageDet
       </div>
 
       <div className="flex gap-8 flex-col lg:flex-row">
-        <ImagePreview color={image.color} alt={image.label} prevHref={prevHref} nextHref={nextHref} />
+        <ImagePreview
+          url={photo.url}
+          alt={`Photo ${photo.id}`}
+          prevHref={prevHref}
+          nextHref={nextHref}
+        />
 
         <div className="flex-1">
           <ImageDetailsForm
-            title={image.label}
-            size={image.size}
-            tags={image.tags}
+            title={`Photo ${photo.id}`}
+            size={`${photo.file_size_mb} MB`}
+            tags={[]}
           />
         </div>
       </div>

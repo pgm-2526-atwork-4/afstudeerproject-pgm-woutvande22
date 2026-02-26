@@ -3,14 +3,7 @@
 import { useState } from "react";
 import { CollectionHeader } from "@/app/components/dashboard/CollectionHeader";
 import { CollectionImageSearchBar } from "@/app/components/dashboard/CollectionImageSearchBar";
-import { ImageGrid } from "@/app/components/dashboard/ImageGrid";
-
-interface ImageItem {
-  id: string;
-  label: string;
-  color: string;
-  tags: string[];
-}
+import { ImageGrid, type ImageItem } from "@/app/components/dashboard/ImageGrid";
 
 interface CollectionDetailContentProps {
   collection: {

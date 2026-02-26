@@ -1,6 +1,6 @@
 import logging
 import uuid
-from fastapi import APIRouter, HTTPException, UploadFile, File, Query
+from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Body
 from pydantic import BaseModel
 from typing import Optional
 from dependencies import get_supabase
@@ -20,10 +20,18 @@ class PhotoResponse(BaseModel):
     url: str
     user_id: str
     file_size_mb: float
+    order_id: Optional[int] = 0
 
 class PhotoListResponse(BaseModel):
     photos: list[PhotoResponse]
     count: int
+
+class ReorderItem(BaseModel):
+    id: int
+    order_id: int
+
+class ReorderRequest(BaseModel):
+    photos: list[ReorderItem]
 
 # upload
 
@@ -113,6 +121,20 @@ async def upload_photo(
     public_url = supabase.storage.from_(BUCKET_NAME).get_public_url(storage_path)
 
     # 7. Insert record into photos table
+    # Get the next order_id for this user
+    try:
+        last_photo = (
+            supabase.table("photos")
+            .select("order_id")
+            .eq("user_id", user.id)
+            .order("order_id", desc=True)
+            .limit(1)
+            .execute()
+        )
+        next_order = (last_photo.data[0]["order_id"] + 1) if last_photo.data else 0
+    except Exception:
+        next_order = 0
+
     try:
         photo_record = (
             supabase.table("photos")
@@ -120,6 +142,7 @@ async def upload_photo(
                 "url": public_url,
                 "user_id": user.id,
                 "file_size_mb": file_size_mb,
+                "order_id": next_order,
             })
             .execute()
         )
@@ -180,14 +203,51 @@ def get_my_photos(access_token: str = Query(...)):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    result = (
-        supabase.table("photos")
-        .select("*")
-        .eq("user_id", user.id)
-        .execute()
-    )
+    try:
+        result = (
+            supabase.table("photos")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("order_id")
+            .execute()
+        )
+    except Exception:
+        # Fallback if order_id column doesn't exist yet
+        result = (
+            supabase.table("photos")
+            .select("*")
+            .eq("user_id", user.id)
+            .execute()
+        )
 
     return PhotoListResponse(photos=result.data, count=len(result.data))
+
+
+# reorder photos
+
+@router.put("/reorder")
+def reorder_photos(access_token: str = Query(...), body: ReorderRequest = Body(...)):
+    """Update the order_id of multiple photos at once."""
+    supabase = get_supabase()
+
+    try:
+        user_response = supabase.auth.get_user(access_token)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+    user = user_response.user
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    for item in body.photos:
+        try:
+            supabase.table("photos").update({
+                "order_id": item.order_id
+            }).eq("id", item.id).eq("user_id", user.id).execute()
+        except Exception as e:
+            logger.error(f"Failed to update order for photo {item.id}: {e}")
+
+    return {"message": "Order updated"}
 
 # get a single phoot
 

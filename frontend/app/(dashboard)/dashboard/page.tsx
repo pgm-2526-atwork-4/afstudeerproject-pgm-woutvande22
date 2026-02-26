@@ -1,25 +1,62 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { PageHeader } from "@/app/components/dashboard/PageHeader";
 import { UploadButton } from "@/app/components/dashboard/UploadButton";
 import { SearchFilterBar } from "@/app/components/dashboard/SearchbarFilterBar";
-import { ImageGrid } from "@/app/components/dashboard/ImageGrid";
+import { ImageGrid, type ImageItem } from "@/app/components/dashboard/ImageGrid";
 import { GenerateCollectionButton } from "@/app/components/dashboard/GenerateCollectionButton";
-
-const initialImages = [
-  { id: "serif-elegance", label: "Serif Elegance", color: "bg-[#1e3a30]", tags: ["typography", "branding"] },
-  { id: "gradient-burst", label: "Gradient Burst", color: "bg-[#c5dff0]", tags: ["color", "ui"] },
-  { id: "grid-system", label: "Grid System", color: "bg-[#d9a090]", tags: ["layout", "ui"] },
-  { id: "brand-identity-kit", label: "Brand Identity Kit", color: "bg-[#c9a96e]", tags: ["branding", "color"] },
-  { id: "ink-botanicals", label: "Ink Botanicals", color: "bg-[#1e3a30]", tags: ["illustration", "texture"] },
-  { id: "desert-light", label: "Desert Light", color: "bg-[#8b7355]", tags: ["photography", "color"] },
-  { id: "mono-type", label: "Mono Type", color: "bg-[#4a86b5]", tags: ["typography", "layout"] },
-  { id: "woven-linen", label: "Woven Linen", color: "bg-[#5a5a52]", tags: ["texture", "color"] },
-];
+import { fetchPhotos, reorderPhotos } from "@/app/lib/photos";
 
 export default function DashboardPage() {
-  const [images, setImages] = useState(initialImages);
+  const [images, setImages] = useState<ImageItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadPhotos = useCallback(async () => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const photos = await fetchPhotos(token);
+      setImages(
+        photos.map((p) => ({
+          id: String(p.id),
+          url: p.url,
+          label: `Photo ${p.id}`,
+        }))
+      );
+    } catch (err) {
+      console.error("Failed to load photos:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadPhotos();
+  }, [loadPhotos]);
+
+  const handleReorder = useCallback(
+    (reordered: ImageItem[]) => {
+      setImages(reordered);
+
+      const token = localStorage.getItem("access_token");
+      if (!token) return;
+
+      const updates = reordered.map((img, index) => ({
+        id: Number(img.id),
+        order_id: index,
+      }));
+
+      reorderPhotos(token, updates).catch((err) =>
+        console.error("Failed to save order:", err)
+      );
+    },
+    []
+  );
 
   return (
     <div className="pb-24">
@@ -29,14 +66,20 @@ export default function DashboardPage() {
             title="All Images"
             description="Browse and organize your design inspiration"
           />
-          <UploadButton />
+          <UploadButton onUploadSuccess={loadPhotos} />
         </div>
 
         <SearchFilterBar />
       </div>
 
       <div className="px-8">
-        <ImageGrid images={images} onReorder={setImages} />
+        {loading ? (
+          <p className="text-gray-500 text-sm mt-8">Loading photos...</p>
+        ) : images.length === 0 ? (
+          <p className="text-gray-500 text-sm mt-8">No photos yet. Upload your first image!</p>
+        ) : (
+          <ImageGrid images={images} onReorder={handleReorder} />
+        )}
       </div>
 
       <GenerateCollectionButton />
