@@ -4,7 +4,12 @@ import { useState } from "react";
 import { FileUploadOutlined } from "@mui/icons-material";
 import { UploadImageModal } from "@/app/components/upload/UploadImageModal";
 
-export const UploadButton = () => {
+interface UploadButtonProps {
+  onUploadSuccess?: () => void;
+  collectionId?: number;
+}
+
+export const UploadButton = ({ onUploadSuccess, collectionId }: UploadButtonProps) => {
   const [open, setOpen] = useState(false);
 
   return (
@@ -18,7 +23,12 @@ export const UploadButton = () => {
         Upload Image
       </button>
 
-      <UploadImageModal open={open} onClose={() => setOpen(false)} />
+      <UploadImageModal
+        open={open}
+        onClose={() => setOpen(false)}
+        onUploadSuccess={onUploadSuccess}
+        collectionId={collectionId}
+      />
     </>
   );
 };

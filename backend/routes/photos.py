@@ -10,8 +10,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/photos", tags=["Photos"])
 
 BUCKET_NAME = "photos"
-ALLOWED_ITEMS = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-MAX_FILE_SIZE = 10
+ALLOWED_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"}
+MAX_FILE_SIZE_MB = 10
 
 # Schemas
 
