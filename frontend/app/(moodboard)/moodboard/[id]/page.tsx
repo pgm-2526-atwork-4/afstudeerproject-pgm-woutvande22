@@ -1,42 +1,76 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { MoodboardHeader } from "@/app/components/moodboard/MoodboardHeader";
 import { MoodboardCanvas } from "@/app/components/moodboard/MoodboardCanvas";
 import { MoodboardToolbar } from "@/app/components/moodboard/MoodboardToolbar";
 import { MoodboardItemData } from "@/app/components/moodboard/MoodboardItem";
-
-const collections: Record<string, { title: string; color: string }> = {
-  "brand-assets-2024": { title: "Brand Assets 2024", color: "#4a86b5" },
-  "ui-inspiration": { title: "UI Inspiration", color: "#c5dff0" },
-  "typography-studies": { title: "Typography Studies", color: "#1e3a30" },
-  "color-palettes": { title: "Color Palettes", color: "#c9a96e" },
-  "product-photography": { title: "Product Photography", color: "#8b7355" },
-  "illustrations": { title: "Illustrations", color: "#1e3a30" },
-};
-
-const collectionMoodboardImages: Record<string, MoodboardItemData[]> = {
-  "brand-assets-2024": [
-    { id: "img-1", type: "image", label: "Image 1", color: "#9b7dd4", x: 120, y: 100, scale: 1.2, zIndex: 0 },
-    { id: "img-2", type: "image", label: "Image 2", color: "#e84393", x: 360, y: 60, scale: 1.3, zIndex: 1 },
-    { id: "img-3", type: "image", label: "Image 3", color: "#00b894", x: 620, y: 100, scale: 1.1, zIndex: 2 },
-    { id: "img-4", type: "image", label: "Image 4", color: "#f39c12", x: 100, y: 320, scale: 1.3, zIndex: 3 },
-    { id: "img-5", type: "image", label: "Image 5", color: "#3498db", x: 380, y: 340, scale: 1.2, zIndex: 4 },
-  ],
-};
+import { fetchCollection, fetchCollectionPhotos } from "@/app/lib/collections";
 
 export default function MoodboardPage() {
   const params = useParams<{ id: string }>();
   const collectionId = params.id;
-  const collection = collections[collectionId];
 
-  const [items, setItems] = useState<MoodboardItemData[]>(
-    collectionMoodboardImages[collectionId] ?? []
-  );
+  const [collectionTitle, setCollectionTitle] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [items, setItems] = useState<MoodboardItemData[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [bgColor, setBgColor] = useState("#ffffff");
+
+  useEffect(() => {
+    const load = async () => {
+      const token = localStorage.getItem("access_token");
+      const numericId = Number(collectionId);
+      if (!token || isNaN(numericId)) {
+        setNotFound(true);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const [col, photos] = await Promise.all([
+          fetchCollection(token, numericId),
+          fetchCollectionPhotos(token, numericId),
+        ]);
+
+        setCollectionTitle(col.title);
+
+        // Lay out photos in a grid-like pattern on the canvas
+        const COLS = 3;
+        const GAP_X = 280;
+        const GAP_Y = 240;
+        const START_X = 80;
+        const START_Y = 60;
+
+        const moodboardItems: MoodboardItemData[] = photos.map(
+          (photo, idx) => ({
+            id: String(photo.id),
+            type: "image" as const,
+            label: photo.title || `Image ${idx + 1}`,
+            color: "#e2e8f0",
+            imageUrl: photo.url,
+            x: START_X + (idx % COLS) * GAP_X,
+            y: START_Y + Math.floor(idx / COLS) * GAP_Y,
+            scale: 1,
+            baseWidth: 240,
+            baseHeight: 200,
+            zIndex: idx,
+          })
+        );
+
+        setItems(moodboardItems);
+      } catch {
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [collectionId]);
 
   const handleMove = useCallback((id: string, x: number, y: number) => {
     setItems((prev) =>
@@ -122,7 +156,15 @@ export default function MoodboardPage() {
     alert("Export coming soon!");
   }, []);
 
-  if (!collection) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-500">Loading moodboard…</p>
+      </div>
+    );
+  }
+
+  if (notFound) {
     return (
       <div className="flex items-center justify-center h-full">
         <p className="text-gray-500">Collection not found.</p>
@@ -135,8 +177,8 @@ export default function MoodboardPage() {
   return (
     <>
       <MoodboardHeader
-        title={collection.title}
-        color={collection.color}
+        title={collectionTitle}
+        color="#4a86b5"
         collectionId={collectionId}
         zoom={zoom}
         bgColor={bgColor}

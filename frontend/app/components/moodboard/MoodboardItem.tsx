@@ -13,6 +13,8 @@ export interface MoodboardItemData {
   zIndex?: number;
   baseWidth?: number;
   baseHeight?: number;
+  /** Image-item–only field: real image URL */
+  imageUrl?: string;
   /** Text-item–only fields */
   text?: string;
   fontSize?: number;
@@ -193,16 +195,25 @@ export function MoodboardItem({
       ) : (
         /* ─── Image / color item ─── */
         <div
-          className="w-full h-full rounded-lg flex items-center justify-center shadow-md"
+          className="w-full h-full rounded-lg flex items-center justify-center shadow-md overflow-hidden"
           style={{
             backgroundColor: item.color,
             outline: isSelected ? "2px solid #38bdf8" : "none",
             outlineOffset: 2,
           }}
         >
-          <span className="text-white text-sm font-medium drop-shadow-sm select-none">
-            {item.label}
-          </span>
+          {item.imageUrl ? (
+            <img
+              src={item.imageUrl}
+              alt={item.label}
+              className="w-full h-full object-cover select-none pointer-events-none"
+              draggable={false}
+            />
+          ) : (
+            <span className="text-white text-sm font-medium drop-shadow-sm select-none">
+              {item.label}
+            </span>
+          )}
         </div>
       )}
 
