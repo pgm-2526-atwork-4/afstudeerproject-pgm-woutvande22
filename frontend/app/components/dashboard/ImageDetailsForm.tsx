@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { FolderOutlined } from "@mui/icons-material";
 import { FormInput } from "@/app/components/ui/FormInput";
 import { Button } from "@/app/components/ui/Button";
 import { TagList } from "./TagList";
 import type { Tag } from "@/app/lib/tags";
+import type { Collection } from "@/app/lib/collections";
 
 interface ImageDetailsFormProps {
   title: string;
@@ -12,6 +15,8 @@ interface ImageDetailsFormProps {
   tags: Tag[];
   allTags: Tag[];
   tagsLoading?: boolean;
+  collections?: Collection[];
+  collectionsLoading?: boolean;
   onSave?: (title: string) => Promise<void>;
   onCancel?: () => void;
   onAddTag?: (tag: Tag) => void;
@@ -25,6 +30,8 @@ export const ImageDetailsForm = ({
   tags,
   allTags,
   tagsLoading,
+  collections = [],
+  collectionsLoading,
   onSave,
   onCancel,
   onAddTag,
@@ -73,6 +80,29 @@ export const ImageDetailsForm = ({
         onRemove={(tagId) => onRemoveTag?.(tagId)}
         onCreate={(name) => onCreateTag?.(name)}
       />
+
+      {/* Collections this image belongs to */}
+      <div className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium text-gray-700">Collections</span>
+        {collectionsLoading ? (
+          <p className="text-sm text-gray-400">Loading collections…</p>
+        ) : collections.length === 0 ? (
+          <p className="text-sm text-gray-400">Not in any collection</p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {collections.map((col) => (
+              <Link
+                key={col.id}
+                href={`/dashboard/collections/${col.id}`}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 hover:bg-sky-50 border border-gray-200 hover:border-sky-300 rounded-lg text-sm text-gray-700 hover:text-sky-600 transition-colors"
+              >
+                <FolderOutlined sx={{ fontSize: 16 }} />
+                {col.title}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
 
       <Button type="button" className="w-auto self-start">
         Generate Tags

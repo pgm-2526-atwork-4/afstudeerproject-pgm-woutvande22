@@ -15,6 +15,10 @@ import {
   removeTagFromPhoto,
   createTag,
 } from "@/app/lib/tags";
+import {
+  fetchCollectionsForPhoto,
+  type Collection,
+} from "@/app/lib/collections";
 
 const DEFAULT_COLORS = [
   "#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6",
@@ -36,6 +40,10 @@ export default function ImageDetailPage() {
   const [photoTags, setPhotoTags] = useState<Tag[]>([]);
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [tagsLoading, setTagsLoading] = useState(false);
+
+  // Collection state
+  const [photoCollections, setPhotoCollections] = useState<Collection[]>([]);
+  const [collectionsLoading, setCollectionsLoading] = useState(false);
 
   // Load photo data
   useEffect(() => {
@@ -78,6 +86,26 @@ export default function ImageDetailPage() {
     };
 
     loadTags();
+  }, [photo]);
+
+  // Load collections for this photo
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token || !photo) return;
+
+    const loadCollections = async () => {
+      setCollectionsLoading(true);
+      try {
+        const cols = await fetchCollectionsForPhoto(token, photo.id);
+        setPhotoCollections(cols);
+      } catch (err) {
+        console.error("Failed to load collections:", err);
+      } finally {
+        setCollectionsLoading(false);
+      }
+    };
+
+    loadCollections();
   }, [photo]);
 
   const handleSave = useCallback(async (title: string) => {
@@ -193,6 +221,8 @@ export default function ImageDetailPage() {
             tags={photoTags}
             allTags={allTags}
             tagsLoading={tagsLoading}
+            collections={photoCollections}
+            collectionsLoading={collectionsLoading}
             onSave={handleSave}
             onCancel={handleCancel}
             onAddTag={handleAddTag}

@@ -419,3 +419,52 @@ def reorder_collection_photos(
             logger.error(f"Failed to reorder photo {item.id}: {e}")
 
     return {"message": "Collection photo order updated"}
+
+
+# ──────── Get collections that contain a specific photo ──────────
+
+@router.get("/by-photo/{photo_id}")
+def get_collections_for_photo(
+    photo_id: int,
+    access_token: str = Query(...),
+):
+    """Return all collections that contain a given photo."""
+    supabase = get_supabase()
+    user = _get_current_user(supabase, access_token)
+
+    # Verify ownership of the photo
+    photo = safe_maybe_single(
+        supabase.table("photos").select("id").eq("id", photo_id).eq("user_id", user.id)
+    )
+    if not photo.data:
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    # Get the collection IDs linked to this photo
+    links = (
+        supabase.table("collections_to_photos")
+        .select("collection_id")
+        .eq("photo_id", photo_id)
+        .execute()
+    )
+
+    if not links.data:
+        return {"collections": []}
+
+    collection_ids = [link["collection_id"] for link in links.data]
+
+    # Fetch those collections
+    cols = (
+        supabase.table("collections")
+        .select("*")
+        .eq("user_id", user.id)
+        .in_("id", collection_ids)
+        .order("order_id")
+        .execute()
+    )
+
+    collections = []
+    for c in (cols.data or []):
+        enriched = _enrich_collection(supabase, c)
+        collections.append(enriched)
+
+    return {"collections": collections}

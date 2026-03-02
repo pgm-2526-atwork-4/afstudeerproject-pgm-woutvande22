@@ -8,6 +8,20 @@ export interface Collection {
   image_count: number;
 }
 
+export async function fetchCollectionsForPhoto(
+  accessToken: string,
+  photoId: number
+): Promise<Collection[]> {
+  const res = await fetch(
+    `${API_URL}/api/collections/by-photo/${photoId}?access_token=${encodeURIComponent(accessToken)}`
+  );
+
+  if (!res.ok) throw new Error("Failed to fetch collections for photo");
+
+  const data = await res.json();
+  return data.collections;
+}
+
 export async function fetchCollections(
   accessToken: string
 ): Promise<Collection[]> {
