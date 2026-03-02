@@ -21,6 +21,10 @@ class TagListResponse(BaseModel):
     tags: list[TagResponse]
     count: int
 
+class PhotoTagsMap(BaseModel):
+    """Maps photo IDs to their tags."""
+    photo_tags: dict[str, list[TagResponse]]
+
 class CreateTagRequest(BaseModel):
     name: str
     color_hex: str
@@ -384,3 +388,61 @@ def get_photo_tags(photo_id: int, access_token: str = Query(...)):
     except Exception as e:
         logger.error(f"Failed to get photo tags: {e}")
         raise HTTPException(status_code=500, detail="Failed to get photo tags")
+
+
+# Batch: get tags for multiple photos at once
+
+@router.get("/photos/batch", response_model=PhotoTagsMap)
+def get_batch_photo_tags(access_token: str = Query(...), photo_ids: str = Query(..., description="Comma-separated photo IDs")):
+    """Get tags for multiple photos in a single request."""
+    supabase = get_supabase()
+    user = get_current_user(supabase, access_token)
+
+    try:
+        ids = [int(pid.strip()) for pid in photo_ids.split(",") if pid.strip()]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid photo_ids format")
+
+    if not ids:
+        return PhotoTagsMap(photo_tags={})
+
+    try:
+        # Get all photo-tag associations for these photos
+        associations = (
+            supabase.table("photos_to_tags")
+            .select("photo_id, tag_id")
+            .in_("photo_id", ids)
+            .execute()
+        )
+
+        if not associations.data:
+            return PhotoTagsMap(photo_tags={str(pid): [] for pid in ids})
+
+        # Collect unique tag IDs
+        tag_ids = list({a["tag_id"] for a in associations.data})
+
+        # Fetch all tags at once
+        tags_result = (
+            supabase.table("tags")
+            .select("id, name, color_hex")
+            .in_("id", tag_ids)
+            .eq("user_id", user.id)
+            .execute()
+        )
+
+        tag_map = {t["id"]: TagResponse(**t) for t in tags_result.data}
+
+        # Build the response map
+        photo_tags: dict[str, list[TagResponse]] = {str(pid): [] for pid in ids}
+        for assoc in associations.data:
+            pid = str(assoc["photo_id"])
+            tid = assoc["tag_id"]
+            if tid in tag_map and pid in photo_tags:
+                photo_tags[pid].append(tag_map[tid])
+
+        return PhotoTagsMap(photo_tags=photo_tags)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get batch photo tags: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get batch photo tags")

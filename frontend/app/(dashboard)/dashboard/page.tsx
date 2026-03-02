@@ -7,6 +7,7 @@ import { SearchFilterBar } from "@/app/components/dashboard/SearchbarFilterBar";
 import { ImageGrid, type ImageItem } from "@/app/components/dashboard/ImageGrid";
 import { GenerateCollectionButton } from "@/app/components/dashboard/GenerateCollectionButton";
 import { fetchPhotos, reorderPhotos } from "@/app/lib/photos";
+import { fetchBatchPhotoTags } from "@/app/lib/tags";
 
 export default function DashboardPage() {
   const [images, setImages] = useState<ImageItem[]>([]);
@@ -21,13 +22,29 @@ export default function DashboardPage() {
 
     try {
       const photos = await fetchPhotos(token);
-      setImages(
-        photos.map((p) => ({
-          id: String(p.id),
-          url: p.url,
-          label: p.title || `Photo ${p.id}`,
-        }))
-      );
+      const items: ImageItem[] = photos.map((p) => ({
+        id: String(p.id),
+        url: p.url,
+        label: p.title || `Photo ${p.id}`,
+      }));
+
+      // Fetch tags for all photos in one batch request
+      if (photos.length > 0) {
+        try {
+          const photoIds = photos.map((p) => p.id);
+          const tagMap = await fetchBatchPhotoTags(token, photoIds);
+          for (const item of items) {
+            const photoTags = tagMap[item.id];
+            if (photoTags && photoTags.length > 0) {
+              item.tags = photoTags.map((t) => ({ name: t.name, color_hex: t.color_hex }));
+            }
+          }
+        } catch (err) {
+          console.error("Failed to load tags:", err);
+        }
+      }
+
+      setImages(items);
     } catch (err) {
       console.error("Failed to load photos:", err);
     } finally {

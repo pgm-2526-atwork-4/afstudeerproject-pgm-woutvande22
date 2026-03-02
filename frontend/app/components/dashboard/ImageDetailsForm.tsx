@@ -4,16 +4,33 @@ import { useState } from "react";
 import { FormInput } from "@/app/components/ui/FormInput";
 import { Button } from "@/app/components/ui/Button";
 import { TagList } from "./TagList";
+import type { Tag } from "@/app/lib/tags";
 
 interface ImageDetailsFormProps {
   title: string;
   size: string;
-  tags: string[];
+  tags: Tag[];
+  allTags: Tag[];
+  tagsLoading?: boolean;
   onSave?: (title: string) => Promise<void>;
   onCancel?: () => void;
+  onAddTag?: (tag: Tag) => void;
+  onRemoveTag?: (tagId: number) => void;
+  onCreateTag?: (name: string) => void;
 }
 
-export const ImageDetailsForm = ({ title: initialTitle, size, tags, onSave, onCancel }: ImageDetailsFormProps) => {
+export const ImageDetailsForm = ({
+  title: initialTitle,
+  size,
+  tags,
+  allTags,
+  tagsLoading,
+  onSave,
+  onCancel,
+  onAddTag,
+  onRemoveTag,
+  onCreateTag,
+}: ImageDetailsFormProps) => {
   const [title, setTitle] = useState(initialTitle);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -48,7 +65,14 @@ export const ImageDetailsForm = ({ title: initialTitle, size, tags, onSave, onCa
         </p>
       </div>
 
-      <TagList tags={tags} />
+      <TagList
+        tags={tags}
+        allTags={allTags}
+        disabled={tagsLoading}
+        onAdd={(tag) => onAddTag?.(tag)}
+        onRemove={(tagId) => onRemoveTag?.(tagId)}
+        onCreate={(name) => onCreateTag?.(name)}
+      />
 
       <Button type="button" className="w-auto self-start">
         Generate Tags

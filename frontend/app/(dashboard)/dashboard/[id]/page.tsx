@@ -7,6 +7,19 @@ import { PageHeader } from "@/app/components/dashboard/PageHeader";
 import { ImagePreview } from "@/app/components/dashboard/ImagePreview";
 import { ImageDetailsForm } from "@/app/components/dashboard/ImageDetailsForm";
 import { type Photo, fetchPhotos, updatePhoto } from "@/app/lib/photos";
+import {
+  type Tag,
+  getPhotoTags,
+  fetchTags,
+  addTagToPhoto,
+  removeTagFromPhoto,
+  createTag,
+} from "@/app/lib/tags";
+
+const DEFAULT_COLORS = [
+  "#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6",
+  "#EC4899", "#14B8A6", "#F97316", "#6366F1", "#06B6D4",
+];
 
 export default function ImageDetailPage() {
   const params = useParams<{ id: string }>();
@@ -19,6 +32,12 @@ export default function ImageDetailPage() {
   const [allIds, setAllIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Tag state
+  const [photoTags, setPhotoTags] = useState<Tag[]>([]);
+  const [allTags, setAllTags] = useState<Tag[]>([]);
+  const [tagsLoading, setTagsLoading] = useState(false);
+
+  // Load photo data
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (!token) {
@@ -37,6 +56,30 @@ export default function ImageDetailPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  // Load tags when photo is available
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token || !photo) return;
+
+    const loadTags = async () => {
+      setTagsLoading(true);
+      try {
+        const [pTags, aTags] = await Promise.all([
+          getPhotoTags(token, photo.id),
+          fetchTags(token),
+        ]);
+        setPhotoTags(pTags);
+        setAllTags(aTags);
+      } catch (err) {
+        console.error("Failed to load tags:", err);
+      } finally {
+        setTagsLoading(false);
+      }
+    };
+
+    loadTags();
+  }, [photo]);
+
   const handleSave = useCallback(async (title: string) => {
     const token = localStorage.getItem("access_token");
     if (!token || !photo) return;
@@ -48,6 +91,46 @@ export default function ImageDetailPage() {
   const handleCancel = useCallback(() => {
     router.push(collection ? `/dashboard/collections/${collection}` : "/dashboard");
   }, [router, collection]);
+
+  const handleAddTag = useCallback(async (tag: Tag) => {
+    const token = localStorage.getItem("access_token");
+    if (!token || !photo) return;
+
+    try {
+      await addTagToPhoto(token, photo.id, tag.id);
+      setPhotoTags((prev) => [...prev, tag]);
+    } catch (err) {
+      console.error("Failed to add tag:", err);
+    }
+  }, [photo]);
+
+  const handleRemoveTag = useCallback(async (tagId: number) => {
+    const token = localStorage.getItem("access_token");
+    if (!token || !photo) return;
+
+    try {
+      await removeTagFromPhoto(token, photo.id, tagId);
+      setPhotoTags((prev) => prev.filter((t) => t.id !== tagId));
+    } catch (err) {
+      console.error("Failed to remove tag:", err);
+    }
+  }, [photo]);
+
+  const handleCreateTag = useCallback(async (name: string) => {
+    const token = localStorage.getItem("access_token");
+    if (!token || !photo) return;
+
+    try {
+      const color = DEFAULT_COLORS[Math.floor(Math.random() * DEFAULT_COLORS.length)];
+      const newTag = await createTag(token, name, color);
+      // Add to the global list and attach to this photo
+      setAllTags((prev) => [...prev, newTag]);
+      await addTagToPhoto(token, photo.id, newTag.id);
+      setPhotoTags((prev) => [...prev, newTag]);
+    } catch (err) {
+      console.error("Failed to create tag:", err);
+    }
+  }, [photo]);
 
   // Compute prev/next
   const currentIndex = allIds.indexOf(id);
@@ -107,9 +190,14 @@ export default function ImageDetailPage() {
           <ImageDetailsForm
             title={photo.title || `Photo ${photo.id}`}
             size={`${photo.file_size_mb} MB`}
-            tags={[]}
+            tags={photoTags}
+            allTags={allTags}
+            tagsLoading={tagsLoading}
             onSave={handleSave}
             onCancel={handleCancel}
+            onAddTag={handleAddTag}
+            onRemoveTag={handleRemoveTag}
+            onCreateTag={handleCreateTag}
           />
         </div>
       </div>

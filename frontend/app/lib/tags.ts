@@ -6,6 +6,24 @@ export interface Tag {
   color_hex: string;
 }
 
+export async function fetchBatchPhotoTags(
+  accessToken: string,
+  photoIds: number[]
+): Promise<Record<string, Tag[]>> {
+  if (photoIds.length === 0) return {};
+
+  const params = new URLSearchParams({
+    access_token: accessToken,
+    photo_ids: photoIds.join(","),
+  });
+
+  const res = await fetch(`${API_URL}/api/tags/photos/batch?${params}`);
+  if (!res.ok) throw new Error("Failed to fetch batch photo tags");
+
+  const data = await res.json();
+  return data.photo_tags;
+}
+
 export async function fetchTags(accessToken: string): Promise<Tag[]> {
   const res = await fetch(
     `${API_URL}/api/tags/?access_token=${encodeURIComponent(accessToken)}`

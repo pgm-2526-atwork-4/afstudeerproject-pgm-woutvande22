@@ -13,7 +13,8 @@ export async function uploadPhoto(
   accessToken: string,
   file: File,
   collectionId?: number,
-  title?: string
+  title?: string,
+  tagNames?: string[]
 ): Promise<Photo> {
   const formData = new FormData();
   formData.append("file", file);
@@ -21,6 +22,9 @@ export async function uploadPhoto(
   const params = new URLSearchParams({ access_token: accessToken });
   if (collectionId) params.append("collection_id", String(collectionId));
   if (title) params.append("title", title);
+  if (tagNames && tagNames.length > 0) {
+    params.append("tag_names", JSON.stringify(tagNames));
+  }
 
   const res = await fetch(`${API_URL}/api/photos/upload?${params}`, {
     method: "POST",

@@ -1,5 +1,6 @@
 import logging
 import uuid
+import json
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Body
 from pydantic import BaseModel
 from typing import Optional
@@ -44,6 +45,7 @@ async def upload_photo(
     access_token: str = Query(...),
     collection_id: Optional[int] = Query(None),
     title: Optional[str] = Query(None),
+    tag_names: Optional[str] = Query(None, description="JSON array of tag names, e.g. '[\"landscape\",\"sunset\"]'"),
     file: UploadFile = File(...),
 ):
     """Upload a photo to Supabase Storage and create a record in the photos table."""
@@ -186,6 +188,51 @@ async def upload_photo(
             }).execute()
         except Exception as e:
             logger.error(f"Failed to link photo to collection: {e}")
+
+    # 10. If tag_names provided, find-or-create tags and link them to the photo
+    if tag_names:
+        try:
+            names = json.loads(tag_names)
+            if isinstance(names, list):
+                # Set auth header for RLS
+                supabase.postgrest.auth(access_token)
+
+                for raw_name in names:
+                    name = str(raw_name).strip().lower()
+                    if not name:
+                        continue
+
+                    # Find existing tag for this user
+                    existing_tag = safe_maybe_single(
+                        supabase.table("tags")
+                        .select("id")
+                        .eq("name", name)
+                        .eq("user_id", user.id)
+                    )
+
+                    if existing_tag.data:
+                        tag_id = existing_tag.data["id"] if isinstance(existing_tag.data, dict) else existing_tag.data[0]["id"]
+                    else:
+                        # Create the tag with a default color
+                        new_tag = (
+                            supabase.table("tags")
+                            .insert({"name": name, "color_hex": "#6B7280", "user_id": user.id})
+                            .execute()
+                        )
+                        tag_id = new_tag.data[0]["id"]
+
+                    # Link tag to photo (ignore if already linked)
+                    try:
+                        supabase.table("photos_to_tags").insert({
+                            "photo_id": photo["id"],
+                            "tag_id": tag_id,
+                        }).execute()
+                    except Exception:
+                        pass  # already linked
+        except json.JSONDecodeError:
+            logger.warning(f"Invalid tag_names JSON: {tag_names}")
+        except Exception as e:
+            logger.error(f"Failed to process tags during upload: {e}")
 
     return PhotoResponse(**photo)
 

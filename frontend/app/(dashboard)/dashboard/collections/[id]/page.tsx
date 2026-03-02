@@ -9,20 +9,22 @@ const collections: Record<string, { title: string; description: string; imageCou
   "illustrations": { title: "Illustrations", description: "Hand-drawn and digital art", imageCount: 42, color: "#1e3a30" },
 };
 
-const collectionImages: Record<string, { id: string; label: string; color: string; tags: string[] }[]> = {
+import type { ImageTag } from "@/app/components/dashboard/ImageGrid";
+
+const collectionImages: Record<string, { id: string; label: string; tags: ImageTag[] }[]> = {
   "brand-assets-2024": [
-    { id: "serif-elegance", label: "Serif Elegance", color: "bg-[#1e3a30]", tags: ["typography", "branding"] },
-    { id: "gradient-burst", label: "Gradient Burst", color: "bg-[#c5dff0]", tags: ["color", "ui"] },
-    { id: "grid-system", label: "Grid System", color: "bg-[#d9a090]", tags: ["layout", "ui"] },
-    { id: "brand-identity-kit", label: "Brand Identity Kit", color: "bg-[#c9a96e]", tags: ["branding", "color"] },
-    { id: "ink-botanicals", label: "Ink Botanicals", color: "bg-[#1e3a30]", tags: ["illustration", "texture"] },
-    { id: "desert-light", label: "Desert Light", color: "bg-[#8b7355]", tags: ["photography", "color"] },
-    { id: "mono-type", label: "Mono Type", color: "bg-[#4a86b5]", tags: ["typography", "layout"] },
-    { id: "woven-linen", label: "Woven Linen", color: "bg-[#5a5a52]", tags: ["texture", "color"] },
-    { id: "dashboard-ui", label: "Dashboard UI", color: "bg-[#1a1a1a]", tags: ["ui", "layout"] },
-    { id: "brush-strokes", label: "Brush Strokes", color: "bg-[#1e3a30]", tags: ["illustration", "texture"] },
-    { id: "bold-architecture", label: "Bold Architecture", color: "bg-[#c94040]", tags: ["color", "branding"] },
-    { id: "editorial-spread", label: "Editorial Spread", color: "bg-[#7a9ab5]", tags: ["layout", "typography"] },
+    { id: "serif-elegance", label: "Serif Elegance", tags: [{ name: "typography", color_hex: "#4a86b5" }, { name: "branding", color_hex: "#1e3a30" }] },
+    { id: "gradient-burst", label: "Gradient Burst", tags: [{ name: "color", color_hex: "#c5dff0" }, { name: "ui", color_hex: "#d9a090" }] },
+    { id: "grid-system", label: "Grid System", tags: [{ name: "layout", color_hex: "#c9a96e" }, { name: "ui", color_hex: "#d9a090" }] },
+    { id: "brand-identity-kit", label: "Brand Identity Kit", tags: [{ name: "branding", color_hex: "#1e3a30" }, { name: "color", color_hex: "#c5dff0" }] },
+    { id: "ink-botanicals", label: "Ink Botanicals", tags: [{ name: "illustration", color_hex: "#8b7355" }, { name: "texture", color_hex: "#5a5a52" }] },
+    { id: "desert-light", label: "Desert Light", tags: [{ name: "photography", color_hex: "#c94040" }, { name: "color", color_hex: "#c5dff0" }] },
+    { id: "mono-type", label: "Mono Type", tags: [{ name: "typography", color_hex: "#4a86b5" }, { name: "layout", color_hex: "#c9a96e" }] },
+    { id: "woven-linen", label: "Woven Linen", tags: [{ name: "texture", color_hex: "#5a5a52" }, { name: "color", color_hex: "#c5dff0" }] },
+    { id: "dashboard-ui", label: "Dashboard UI", tags: [{ name: "ui", color_hex: "#d9a090" }, { name: "layout", color_hex: "#c9a96e" }] },
+    { id: "brush-strokes", label: "Brush Strokes", tags: [{ name: "illustration", color_hex: "#8b7355" }, { name: "texture", color_hex: "#5a5a52" }] },
+    { id: "bold-architecture", label: "Bold Architecture", tags: [{ name: "color", color_hex: "#c5dff0" }, { name: "branding", color_hex: "#1e3a30" }] },
+    { id: "editorial-spread", label: "Editorial Spread", tags: [{ name: "layout", color_hex: "#c9a96e" }, { name: "typography", color_hex: "#4a86b5" }] },
   ],
 };
 

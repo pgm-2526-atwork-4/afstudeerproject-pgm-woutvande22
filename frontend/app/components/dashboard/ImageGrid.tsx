@@ -4,11 +4,16 @@ import { ImageCard } from "./ImageCard";
 import { SortableList } from "../dnd/SortableList";
 import { SortableGridItem } from "../dnd/SortableGridItem";
 
+export interface ImageTag {
+  name: string;
+  color_hex: string;
+}
+
 export interface ImageItem {
   id: string;
   label?: string;
   url?: string;
-  tags?: string[];
+  tags?: ImageTag[];
 }
 
 interface ImageGridProps {

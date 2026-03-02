@@ -5,6 +5,7 @@ import { Modal } from "@/app/components/ui/Modal";
 import { FilePicker } from "./FilePicker";
 import { ImagePreviewThumbnail } from "./ImagePreviewThumbnail";
 import { FormInput } from "@/app/components/ui/FormInput";
+import { TagSelector, type SelectedTag } from "./TagSelector";
 import { uploadPhoto } from "@/app/lib/photos";
 
 interface UploadImageModalProps {
@@ -23,6 +24,7 @@ export const UploadImageModal = ({
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [title, setTitle] = useState("");
+  const [selectedTags, setSelectedTags] = useState<SelectedTag[]>([]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -30,6 +32,7 @@ export const UploadImageModal = ({
     setFile(null);
     setPreviewUrl(null);
     setTitle("");
+    setSelectedTags([]);
     setUploading(false);
     setError(null);
   }, []);
@@ -71,7 +74,8 @@ export const UploadImageModal = ({
       setError(null);
 
       try {
-        await uploadPhoto(token, file, collectionId, title || undefined);
+        const tagNames = selectedTags.map((t) => t.name);
+        await uploadPhoto(token, file, collectionId, title || undefined, tagNames.length > 0 ? tagNames : undefined);
         resetState();
         onClose();
         onUploadSuccess?.();
@@ -81,7 +85,7 @@ export const UploadImageModal = ({
         setUploading(false);
       }
     },
-    [file, collectionId, title, onClose, onUploadSuccess, resetState]
+    [file, collectionId, title, selectedTags, onClose, onUploadSuccess, resetState]
   );
 
   return (
@@ -103,6 +107,13 @@ export const UploadImageModal = ({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Enter a title for your image"
+          />
+        )}
+
+        {file && (
+          <TagSelector
+            selectedTags={selectedTags}
+            onChange={setSelectedTags}
           />
         )}
 
