@@ -97,3 +97,26 @@ export async function deleteCollection(
     throw new Error(errorMessage);
   }
 }
+
+export interface CollectionPhoto {
+  id: number;
+  url: string;
+  user_id: string;
+  file_size_mb: number;
+  order_id: number;
+  title?: string;
+}
+
+export async function fetchCollectionPhotos(
+  accessToken: string,
+  collectionId: number
+): Promise<CollectionPhoto[]> {
+  const res = await fetch(
+    `${API_URL}/api/collections/${collectionId}/photos?access_token=${encodeURIComponent(accessToken)}`
+  );
+
+  if (!res.ok) throw new Error("Failed to fetch collection photos");
+
+  const data = await res.json();
+  return data.photos;
+}
