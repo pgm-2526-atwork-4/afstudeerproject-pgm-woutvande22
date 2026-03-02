@@ -25,7 +25,7 @@ export default function DashboardPage() {
         photos.map((p) => ({
           id: String(p.id),
           url: p.url,
-          label: `Photo ${p.id}`,
+          label: p.title || `Photo ${p.id}`,
         }))
       );
     } catch (err) {

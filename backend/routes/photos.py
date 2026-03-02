@@ -21,6 +21,7 @@ class PhotoResponse(BaseModel):
     user_id: str
     file_size_mb: float
     order_id: Optional[int] = 0
+    title: Optional[str] = None
 
 class PhotoListResponse(BaseModel):
     photos: list[PhotoResponse]
@@ -33,12 +34,16 @@ class ReorderItem(BaseModel):
 class ReorderRequest(BaseModel):
     photos: list[ReorderItem]
 
+class UpdatePhotoRequest(BaseModel):
+    title: Optional[str] = None
+
 # upload
 
 @router.post("/upload", response_model=PhotoResponse, status_code=201)
 async def upload_photo(
     access_token: str = Query(...),
     collection_id: Optional[int] = Query(None),
+    title: Optional[str] = Query(None),
     file: UploadFile = File(...),
 ):
     """Upload a photo to Supabase Storage and create a record in the photos table."""
@@ -143,6 +148,7 @@ async def upload_photo(
                 "user_id": user.id,
                 "file_size_mb": file_size_mb,
                 "order_id": next_order,
+                "title": title,
             })
             .execute()
         )
@@ -278,6 +284,56 @@ def get_photo(photo_id: int, access_token: str = Query(...)):
         raise HTTPException(status_code=404, detail="Photo not found")
 
     return PhotoResponse(**result.data)
+
+# Update photo
+
+@router.patch("/{photo_id}", response_model=PhotoResponse)
+def update_photo(photo_id: int, access_token: str = Query(...), body: UpdatePhotoRequest = Body(...)):
+    """Update a photo's title."""
+    supabase = get_supabase()
+
+    try:
+        user_response = supabase.auth.get_user(access_token)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+    user = user_response.user
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    # Check if photo exists and belongs to user
+    existing = (
+        supabase.table("photos")
+        .select("*")
+        .eq("id", photo_id)
+        .eq("user_id", user.id)
+        .maybe_single()
+        .execute()
+    )
+
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    # Build update dict with only provided fields
+    update_data = {}
+    if body.title is not None:
+        update_data["title"] = body.title
+
+    if not update_data:
+        return PhotoResponse(**existing.data)
+
+    result = (
+        supabase.table("photos")
+        .update(update_data)
+        .eq("id", photo_id)
+        .eq("user_id", user.id)
+        .execute()
+    )
+
+    if not result.data:
+        raise HTTPException(status_code=500, detail="Failed to update photo")
+
+    return PhotoResponse(**result.data[0])
 
 # Delete photo
 

@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { Modal } from "@/app/components/ui/Modal";
 import { FilePicker } from "./FilePicker";
 import { ImagePreviewThumbnail } from "./ImagePreviewThumbnail";
+import { FormInput } from "@/app/components/ui/FormInput";
 import { uploadPhoto } from "@/app/lib/photos";
 
 interface UploadImageModalProps {
@@ -21,12 +22,14 @@ export const UploadImageModal = ({
 }: UploadImageModalProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const resetState = useCallback(() => {
     setFile(null);
     setPreviewUrl(null);
+    setTitle("");
     setUploading(false);
     setError(null);
   }, []);
@@ -39,6 +42,10 @@ export const UploadImageModal = ({
   const handleFileSelect = useCallback((selectedFile: File) => {
     setFile(selectedFile);
     setError(null);
+
+    // Set default title from filename (without extension)
+    const nameWithoutExt = selectedFile.name.replace(/\.[^/.]+$/, "");
+    setTitle(nameWithoutExt);
 
     // Create a local preview URL
     const url = URL.createObjectURL(selectedFile);
@@ -64,7 +71,7 @@ export const UploadImageModal = ({
       setError(null);
 
       try {
-        await uploadPhoto(token, file, collectionId);
+        await uploadPhoto(token, file, collectionId, title || undefined);
         resetState();
         onClose();
         onUploadSuccess?.();
@@ -74,7 +81,7 @@ export const UploadImageModal = ({
         setUploading(false);
       }
     },
-    [file, collectionId, onClose, onUploadSuccess, resetState]
+    [file, collectionId, title, onClose, onUploadSuccess, resetState]
   );
 
   return (
@@ -87,6 +94,16 @@ export const UploadImageModal = ({
 
         {previewUrl && (
           <ImagePreviewThumbnail src={previewUrl} alt={file?.name} />
+        )}
+
+        {file && (
+          <FormInput
+            id="title"
+            label="Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter a title for your image"
+          />
         )}
 
         {error && (

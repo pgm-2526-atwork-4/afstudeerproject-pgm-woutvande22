@@ -6,18 +6,21 @@ export interface Photo {
   user_id: string;
   file_size_mb: number;
   order_id: number;
+  title?: string;
 }
 
 export async function uploadPhoto(
   accessToken: string,
   file: File,
-  collectionId?: number
+  collectionId?: number,
+  title?: string
 ): Promise<Photo> {
   const formData = new FormData();
   formData.append("file", file);
 
   const params = new URLSearchParams({ access_token: accessToken });
   if (collectionId) params.append("collection_id", String(collectionId));
+  if (title) params.append("title", title);
 
   const res = await fetch(`${API_URL}/api/photos/upload?${params}`, {
     method: "POST",
@@ -81,4 +84,26 @@ export async function reorderPhotos(
     const error = await res.json();
     throw new Error(error.detail || "Reorder failed");
   }
+}
+
+export async function updatePhoto(
+  accessToken: string,
+  photoId: number,
+  data: { title?: string }
+): Promise<Photo> {
+  const res = await fetch(
+    `${API_URL}/api/photos/${photoId}?access_token=${encodeURIComponent(accessToken)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }
+  );
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || "Update failed");
+  }
+
+  return res.json();
 }

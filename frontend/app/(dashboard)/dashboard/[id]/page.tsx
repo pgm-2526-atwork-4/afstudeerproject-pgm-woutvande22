@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/app/components/dashboard/PageHeader";
 import { ImagePreview } from "@/app/components/dashboard/ImagePreview";
 import { ImageDetailsForm } from "@/app/components/dashboard/ImageDetailsForm";
-import { type Photo, fetchPhotos } from "@/app/lib/photos";
+import { type Photo, fetchPhotos, updatePhoto } from "@/app/lib/photos";
 
 export default function ImageDetailPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const id = params.id;
   const collection = searchParams.get("collection") ?? undefined;
 
@@ -35,6 +36,18 @@ export default function ImageDetailPage() {
       .catch((err) => console.error("Failed to load photo:", err))
       .finally(() => setLoading(false));
   }, [id]);
+
+  const handleSave = useCallback(async (title: string) => {
+    const token = localStorage.getItem("access_token");
+    if (!token || !photo) return;
+
+    const updated = await updatePhoto(token, photo.id, { title });
+    setPhoto(updated);
+  }, [photo]);
+
+  const handleCancel = useCallback(() => {
+    router.push(collection ? `/dashboard/collections/${collection}` : "/dashboard");
+  }, [router, collection]);
 
   // Compute prev/next
   const currentIndex = allIds.indexOf(id);
@@ -92,9 +105,11 @@ export default function ImageDetailPage() {
 
         <div className="flex-1">
           <ImageDetailsForm
-            title={`Photo ${photo.id}`}
+            title={photo.title || `Photo ${photo.id}`}
             size={`${photo.file_size_mb} MB`}
             tags={[]}
+            onSave={handleSave}
+            onCancel={handleCancel}
           />
         </div>
       </div>
