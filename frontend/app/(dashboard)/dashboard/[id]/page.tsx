@@ -218,6 +218,7 @@ export default function ImageDetailPage() {
           <ImageDetailsForm
             title={photo.title || `Photo ${photo.id}`}
             size={`${photo.file_size_mb} MB`}
+            uploadedAt={photo.created_at}
             tags={photoTags}
             allTags={allTags}
             tagsLoading={tagsLoading}

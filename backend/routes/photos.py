@@ -23,6 +23,7 @@ class PhotoResponse(BaseModel):
     file_size_mb: float
     order_id: Optional[int] = 0
     title: Optional[str] = None
+    created_at: Optional[str] = None
 
 class PhotoListResponse(BaseModel):
     photos: list[PhotoResponse]

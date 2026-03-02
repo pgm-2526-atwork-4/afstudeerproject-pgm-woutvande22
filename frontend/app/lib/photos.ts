@@ -7,6 +7,7 @@ export interface Photo {
   file_size_mb: number;
   order_id: number;
   title?: string;
+  created_at?: string;
 }
 
 export async function uploadPhoto(
