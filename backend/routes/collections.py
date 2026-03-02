@@ -14,9 +14,8 @@ router = APIRouter(prefix="/api/collections", tags=["Collections"])
 class CollectionResponse(BaseModel):
     id: int
     title: str
-    description: Optional[str] = None
-    color: Optional[str] = None
     user_id: str
+    order_id: int = 0
     image_count: int = 0
 
 
@@ -27,14 +26,10 @@ class CollectionListResponse(BaseModel):
 
 class CreateCollectionRequest(BaseModel):
     title: str
-    description: Optional[str] = None
-    color: Optional[str] = "#4a86b5"
 
 
 class UpdateCollectionRequest(BaseModel):
     title: Optional[str] = None
-    description: Optional[str] = None
-    color: Optional[str] = None
 
 
 class CollectionPhotoRequest(BaseModel):
@@ -86,9 +81,8 @@ def _enrich_collection(supabase, row: dict) -> CollectionResponse:
     return CollectionResponse(
         id=row["id"],
         title=row["title"],
-        description=row.get("description"),
-        color=row.get("color"),
         user_id=row["user_id"],
+        order_id=row.get("order_id", 0),
         image_count=_get_image_count(supabase, row["id"]),
     )
 
@@ -106,7 +100,7 @@ def list_collections(access_token: str = Query(...)):
             supabase.table("collections")
             .select("*")
             .eq("user_id", user.id)
-            .order("created_at", desc=True)
+            .order("order_id")
             .execute()
         )
     except Exception as e:
@@ -129,13 +123,23 @@ def create_collection(
     user = _get_current_user(supabase, access_token)
 
     try:
+        # Get next order_id for this user
+        last = (
+            supabase.table("collections")
+            .select("order_id")
+            .eq("user_id", user.id)
+            .order("order_id", desc=True)
+            .limit(1)
+            .execute()
+        )
+        next_order = (last.data[0]["order_id"] + 1) if last.data else 0
+
         result = (
             supabase.table("collections")
             .insert({
                 "title": body.title.strip(),
-                "description": body.description,
-                "color": body.color,
                 "user_id": user.id,
+                "order_id": next_order,
             })
             .execute()
         )
@@ -180,7 +184,7 @@ def update_collection(
     access_token: str = Query(...),
     body: UpdateCollectionRequest = Body(...),
 ):
-    """Update a collection's title, description, or color."""
+    """Update a collection's title."""
     supabase = get_supabase()
     user = _get_current_user(supabase, access_token)
 
@@ -197,10 +201,6 @@ def update_collection(
     update_data = {}
     if body.title is not None:
         update_data["title"] = body.title.strip()
-    if body.description is not None:
-        update_data["description"] = body.description
-    if body.color is not None:
-        update_data["color"] = body.color
 
     if not update_data:
         return _enrich_collection(supabase, existing.data)
