@@ -16,11 +16,14 @@ import {
 
 import { CollectionDropdown } from "@/app/components/dashboard/CollectionDropdown";
 import { useAuth } from "@/app/context/AuthContext";
+import { fetchPhotos } from "@/app/lib/photos";
+import { fetchCollections } from "@/app/lib/collections";
+import { fetchTags } from "@/app/lib/tags";
 
 const navItems = [
-  { label: "All Images", href: "/dashboard", icon: <ImageOutlined /> },
-  { label: "Your Collections", href: "/dashboard/collections", icon: <FolderSpecialOutlined />, hasDropdown: true },
-  { label: "Tags", href: "/dashboard/tags", icon: <LocalOfferOutlined /> },
+  { label: "All Images", href: "/dashboard", icon: <ImageOutlined />, countKey: "photos" as const },
+  { label: "Your Collections", href: "/dashboard/collections", icon: <FolderSpecialOutlined />, hasDropdown: true, countKey: "collections" as const },
+  { label: "Tags", href: "/dashboard/tags", icon: <LocalOfferOutlined />, countKey: "tags" as const },
   { label: "Settings", href: "/dashboard/settings", icon: <SettingsOutlined /> },
 ];
 
@@ -30,6 +33,25 @@ export const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [collectionsOpen, setCollectionsOpen] = useState(false);
   const { logout } = useAuth();
+  const [counts, setCounts] = useState<{ photos?: number; collections?: number; tags?: number }>({});
+
+  // Fetch counts for sidebar badges
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+
+    Promise.allSettled([
+      fetchPhotos(token),
+      fetchCollections(token),
+      fetchTags(token),
+    ]).then(([photosRes, colsRes, tagsRes]) => {
+      setCounts({
+        photos: photosRes.status === "fulfilled" ? photosRes.value.length : undefined,
+        collections: colsRes.status === "fulfilled" ? colsRes.value.length : undefined,
+        tags: tagsRes.status === "fulfilled" ? tagsRes.value.length : undefined,
+      });
+    });
+  }, []);
 
   // Expose sidebar width as a CSS variable for fixed-position elements
   useEffect(() => {
@@ -65,6 +87,7 @@ export const Sidebar = () => {
       <nav className="flex flex-col gap-1 flex-1">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
+          const count = item.countKey ? counts[item.countKey] : undefined;
 
           const link = (
             <Link
@@ -80,6 +103,13 @@ export const Sidebar = () => {
             >
               <span className="text-xl">{item.icon}</span>
               {!collapsed && item.label}
+              {!collapsed && count !== undefined && (
+                <span className={`ml-auto text-xs font-medium px-1.5 py-0.5 rounded-full ${
+                  isActive ? "bg-sky-100 text-sky-600" : "bg-gray-100 text-gray-500"
+                }`}>
+                  {count}
+                </span>
+              )}
             </Link>
           );
 
