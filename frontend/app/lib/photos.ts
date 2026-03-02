@@ -53,8 +53,14 @@ export async function deletePhoto(
   );
 
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.detail || "Delete failed");
+    let errorMessage = "Delete failed";
+    try {
+      const error = await res.json();
+      errorMessage = error.detail || errorMessage;
+    } catch {
+      // Response may not have a body (e.g., for 204 or 5xx errors)
+    }
+    throw new Error(errorMessage);
   }
 }
 

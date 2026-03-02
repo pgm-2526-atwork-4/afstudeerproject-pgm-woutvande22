@@ -23,6 +23,10 @@ export function CollectionDetailContent({
 }: CollectionDetailContentProps) {
   const [images, setImages] = useState(initialImages);
 
+  const handleDelete = (id: string) => {
+    setImages((prev) => prev.filter((img) => img.id !== id));
+  };
+
   return (
     <article className="pb-24">
       <div className="sticky top-0 z-10 px-8 pt-6 pb-4 bg-gray-50/80 backdrop-blur-md">
@@ -42,6 +46,7 @@ export function CollectionDetailContent({
           images={images}
           collectionId={collectionId}
           onReorder={setImages}
+          onDelete={handleDelete}
         />
       </div>
     </article>

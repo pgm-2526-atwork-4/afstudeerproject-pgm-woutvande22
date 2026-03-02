@@ -58,6 +58,10 @@ export default function DashboardPage() {
     []
   );
 
+  const handleDelete = useCallback((id: string) => {
+    setImages((prev) => prev.filter((img) => img.id !== id));
+  }, []);
+
   return (
     <div className="pb-24">
       <div className="sticky top-0 z-10 px-8 pt-8 pb-4 bg-gray-50/80 backdrop-blur-md">
@@ -78,7 +82,7 @@ export default function DashboardPage() {
         ) : images.length === 0 ? (
           <p className="text-gray-500 text-sm mt-8">No photos yet. Upload your first image!</p>
         ) : (
-          <ImageGrid images={images} onReorder={handleReorder} />
+          <ImageGrid images={images} onReorder={handleReorder} onDelete={handleDelete} />
         )}
       </div>
 
