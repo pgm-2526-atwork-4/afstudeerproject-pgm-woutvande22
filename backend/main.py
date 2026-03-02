@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routes.auth import router as auth_router
 from routes.photos import router as photos_router
 from routes.tags import router as tags_router
+from routes.collections import router as collections_router
 
 app = FastAPI(title="AI Image Tagger & Moodboarder API")
 
@@ -25,6 +26,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(photos_router)
 app.include_router(tags_router)
+app.include_router(collections_router)
 
 @app.get("/api/status")
 async def get_status():
