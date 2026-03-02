@@ -1,7 +1,7 @@
 import logging
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr
-from dependencies import get_supabase
+from dependencies import get_supabase, safe_maybe_single
 from supabase_auth.errors import AuthApiError
 
 logger = logging.getLogger(__name__)
@@ -104,7 +104,7 @@ def login(body: LoginRequest):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     # Fetch the profile from public.users
-    profile = supabase.table("users").select("*").eq("id", user.id).maybe_single().execute()
+    profile = safe_maybe_single(supabase.table("users").select("*").eq("id", user.id))
 
     return AuthResponse(
         access_token=session.access_token,
@@ -129,7 +129,7 @@ def get_current_user(access_token: str):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    profile = supabase.table("users").select("*").eq("id", user.id).maybe_single().execute()
+    profile = safe_maybe_single(supabase.table("users").select("*").eq("id", user.id))
     return profile.data if profile.data else {"id": user.id, "email": user.email}
 
 

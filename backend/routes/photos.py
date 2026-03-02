@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Body
 from pydantic import BaseModel
 from typing import Optional
-from dependencies import get_supabase
+from dependencies import get_supabase, safe_maybe_single
 
 logger = logging.getLogger(__name__)
 
@@ -77,12 +77,10 @@ async def upload_photo(
         )
 
     # 4. Check user storage limit
-    profile = (
+    profile = safe_maybe_single(
         supabase.table("users")
         .select("current_storage_mb, subscription_id")
         .eq("id", user.id)
-        .maybe_single()
-        .execute()
     )
 
     if profile.data:
@@ -91,12 +89,10 @@ async def upload_photo(
 
         # Get storage limit from subscriptions table
         if sub_id:
-            sub = (
+            sub = safe_maybe_single(
                 supabase.table("subscriptions")
                 .select("storage_limit_mb")
                 .eq("id", sub_id)
-                .maybe_single()
-                .execute()
             )
             limit = sub.data.get("storage_limit_mb", 10240) if sub.data else 10240
         else:
@@ -271,13 +267,11 @@ def get_photo(photo_id: int, access_token: str = Query(...)):
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token")
 
-    result = (
+    result = safe_maybe_single(
         supabase.table("photos")
         .select("*")
         .eq("id", photo_id)
         .eq("user_id", user.id)
-        .maybe_single()
-        .execute()
     )
 
     if not result.data:
@@ -302,13 +296,11 @@ def update_photo(photo_id: int, access_token: str = Query(...), body: UpdatePhot
         raise HTTPException(status_code=401, detail="Invalid token")
 
     # Check if photo exists and belongs to user
-    existing = (
+    existing = safe_maybe_single(
         supabase.table("photos")
         .select("*")
         .eq("id", photo_id)
         .eq("user_id", user.id)
-        .maybe_single()
-        .execute()
     )
 
     if not existing.data:
@@ -352,13 +344,11 @@ def delete_photo(photo_id: int, access_token: str = Query(...)):
         raise HTTPException(status_code=401, detail="Invalid token")
 
     # Fetch the photo to get the URL for storage deletion
-    result = (
+    result = safe_maybe_single(
         supabase.table("photos")
         .select("*")
         .eq("id", photo_id)
         .eq("user_id", user.id)
-        .maybe_single()
-        .execute()
     )
 
     if not result.data:
@@ -388,12 +378,10 @@ def delete_photo(photo_id: int, access_token: str = Query(...)):
 
     # Update user storage
     try:
-        profile = (
+        profile = safe_maybe_single(
             supabase.table("users")
             .select("current_storage_mb")
             .eq("id", user.id)
-            .maybe_single()
-            .execute()
         )
         if profile.data:
             new_storage = max(0, profile.data.get("current_storage_mb", 0) - file_size_mb)

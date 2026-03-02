@@ -1,34 +1,50 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { SearchOutlined, KeyboardArrowDownOutlined } from "@mui/icons-material";
 import { PageHeader } from "@/app/components/dashboard/PageHeader";
 import { TagRow } from "@/app/components/dashboard/TagRow";
 import { TagForm } from "@/app/components/dashboard/TagForm";
+import { fetchTags, createTag, updateTag, deleteTag, type Tag } from "@/app/lib/tags";
 
-interface Tag {
+interface TagItem {
   id: string;
   name: string;
   color: string;
 }
 
-const initialTags: Tag[] = [
-  { id: "1", name: "typography", color: "#6a5acd" },
-  { id: "2", name: "branding", color: "#ff6b6b" },
-  { id: "3", name: "color", color: "#4ecdc4" },
-  { id: "4", name: "ui", color: "#ffe66d" },
-  { id: "5", name: "layout", color: "#95e1d3" },
-  { id: "6", name: "illustration", color: "#f38181" },
-  { id: "7", name: "texture", color: "#c7a0ff" },
-  { id: "8", name: "photography", color: "#ffa07a" },
-];
-
 export const TagsPage = () => {
-  const [tags, setTags] = useState<Tag[]>(initialTags);
+  const [tags, setTags] = useState<TagItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "color">("name");
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  const loadTags = useCallback(async () => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const data = await fetchTags(token);
+      setTags(data.map((t) => ({
+        id: String(t.id),
+        name: t.name,
+        color: t.color_hex,
+      })));
+    } catch (err) {
+      console.error("Failed to load tags:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadTags();
+  }, [loadTags]);
 
   const filteredTags = useMemo(() => {
     const filtered = tags.filter((t) =>
@@ -41,21 +57,52 @@ export const TagsPage = () => {
     });
   }, [tags, search, sortBy]);
 
-  const handleCreate = (name: string, color: string) => {
-    const id = crypto.randomUUID();
-    setTags((prev) => [...prev, { id, name, color }]);
-    setCreating(false);
+  const handleCreate = async (name: string, color: string) => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      console.error("No access token found");
+      return;
+    }
+
+    try {
+      console.log("Creating tag with token:", token.substring(0, 20) + "...");
+      const newTag = await createTag(token, name, color);
+      setTags((prev) => [...prev, {
+        id: String(newTag.id),
+        name: newTag.name,
+        color: newTag.color_hex,
+      }]);
+      setCreating(false);
+    } catch (err) {
+      console.error("Failed to create tag:", err);
+    }
   };
 
-  const handleEdit = (id: string, name: string, color: string) => {
-    setTags((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, name, color } : t))
-    );
-    setEditingId(null);
+  const handleEdit = async (id: string, name: string, color: string) => {
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+
+    try {
+      await updateTag(token, Number(id), { name, color_hex: color });
+      setTags((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, name, color } : t))
+      );
+      setEditingId(null);
+    } catch (err) {
+      console.error("Failed to update tag:", err);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setTags((prev) => prev.filter((t) => t.id !== id));
+  const handleDelete = async (id: string) => {
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+
+    try {
+      await deleteTag(token, Number(id));
+      setTags((prev) => prev.filter((t) => t.id !== id));
+    } catch (err) {
+      console.error("Failed to delete tag:", err);
+    }
   };
 
   return (
@@ -130,37 +177,41 @@ export const TagsPage = () => {
           </div>
         )}
 
-        <ul className="flex flex-col gap-3" role="list" aria-label="Tags">
-          {filteredTags.map((tag) =>
-            editingId === tag.id ? (
-              <li key={tag.id}>
-                <TagForm
-                  initialName={tag.name}
-                  initialColor={tag.color}
-                  onSave={(name, color) => handleEdit(tag.id, name, color)}
-                  onCancel={() => setEditingId(null)}
+        {loading ? (
+          <p className="text-gray-500 text-sm py-8 text-center">Loading tags...</p>
+        ) : (
+          <ul className="flex flex-col gap-3" role="list" aria-label="Tags">
+            {filteredTags.map((tag) =>
+              editingId === tag.id ? (
+                <li key={tag.id}>
+                  <TagForm
+                    initialName={tag.name}
+                    initialColor={tag.color}
+                    onSave={(name, color) => handleEdit(tag.id, name, color)}
+                    onCancel={() => setEditingId(null)}
+                  />
+                </li>
+              ) : (
+                <TagRow
+                  key={tag.id}
+                  name={tag.name}
+                  color={tag.color}
+                  onEdit={() => {
+                    setEditingId(tag.id);
+                    setCreating(false);
+                  }}
+                  onDelete={() => handleDelete(tag.id)}
                 />
-              </li>
-            ) : (
-              <TagRow
-                key={tag.id}
-                name={tag.name}
-                color={tag.color}
-                onEdit={() => {
-                  setEditingId(tag.id);
-                  setCreating(false);
-                }}
-                onDelete={() => handleDelete(tag.id)}
-              />
-            )
-          )}
+              )
+            )}
 
-          {filteredTags.length === 0 && (
-            <li className="py-8 text-center text-sm text-gray-400">
-              No tags found.
-            </li>
-          )}
-        </ul>
+            {filteredTags.length === 0 && (
+              <li className="py-8 text-center text-sm text-gray-400">
+                No tags found.
+              </li>
+            )}
+          </ul>
+        )}
       </div>
     </section>
   );
