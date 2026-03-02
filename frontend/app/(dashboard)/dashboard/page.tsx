@@ -5,6 +5,7 @@ import { PageHeader } from "@/app/components/dashboard/PageHeader";
 import { UploadButton } from "@/app/components/dashboard/UploadButton";
 import { SearchFilterBar } from "@/app/components/dashboard/SearchbarFilterBar";
 import { ImageGrid, type ImageItem } from "@/app/components/dashboard/ImageGrid";
+import { BulkActionBar } from "@/app/components/dashboard/BulkActionBar";
 import { GenerateCollectionButton } from "@/app/components/dashboard/GenerateCollectionButton";
 import { fetchPhotos, reorderPhotos } from "@/app/lib/photos";
 import { fetchBatchPhotoTags } from "@/app/lib/tags";
@@ -12,6 +13,16 @@ import { fetchBatchPhotoTags } from "@/app/lib/tags";
 export default function DashboardPage() {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
   const loadPhotos = useCallback(async () => {
     const token = localStorage.getItem("access_token");
@@ -77,6 +88,11 @@ export default function DashboardPage() {
 
   const handleDelete = useCallback((id: string) => {
     setImages((prev) => prev.filter((img) => img.id !== id));
+    setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
+  }, []);
+
+  const handleBulkDelete = useCallback((ids: string[]) => {
+    setImages((prev) => prev.filter((img) => !ids.includes(img.id)));
   }, []);
 
   return (
@@ -99,9 +115,21 @@ export default function DashboardPage() {
         ) : images.length === 0 ? (
           <p className="text-gray-500 text-sm mt-8">No photos yet. Upload your first image!</p>
         ) : (
-          <ImageGrid images={images} onReorder={handleReorder} onDelete={handleDelete} />
+          <ImageGrid
+            images={images}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onReorder={handleReorder}
+            onDelete={handleDelete}
+          />
         )}
       </div>
+
+      <BulkActionBar
+        selectedIds={selectedIds}
+        onClearSelection={() => setSelectedIds(new Set())}
+        onDeleteDone={handleBulkDelete}
+      />
 
       <GenerateCollectionButton />
     </div>

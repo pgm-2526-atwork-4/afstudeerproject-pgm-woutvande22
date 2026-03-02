@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { CollectionHeader } from "@/app/components/dashboard/CollectionHeader";
 import { ImageGrid, type ImageItem } from "@/app/components/dashboard/ImageGrid";
+import { BulkActionBar } from "@/app/components/dashboard/BulkActionBar";
 import { UploadImageModal } from "@/app/components/upload/UploadImageModal";
 import { AddPhotoAlternateOutlined, SearchOutlined } from "@mui/icons-material";
 import {
@@ -22,8 +23,18 @@ export function CollectionDetailContent({
   const [images, setImages] = useState<ImageItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const numericId = Number(collectionId);
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
   const loadData = useCallback(async () => {
     const token = localStorage.getItem("access_token");
@@ -57,6 +68,11 @@ export function CollectionDetailContent({
 
   const handleDelete = (id: string) => {
     setImages((prev) => prev.filter((img) => img.id !== id));
+    setSelectedIds((prev) => { const next = new Set(prev); next.delete(id); return next; });
+  };
+
+  const handleBulkDelete = (ids: string[]) => {
+    setImages((prev) => prev.filter((img) => !ids.includes(img.id)));
   };
 
   const handleUploadSuccess = () => {
@@ -140,11 +156,20 @@ export function CollectionDetailContent({
           <ImageGrid
             images={images}
             collectionId={collectionId}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
             onReorder={setImages}
             onDelete={handleDelete}
           />
         )}
       </div>
+
+      <BulkActionBar
+        selectedIds={selectedIds}
+        onClearSelection={() => setSelectedIds(new Set())}
+        onDeleteDone={handleBulkDelete}
+        collectionId={collectionId}
+      />
 
       <UploadImageModal
         open={showUploadModal}

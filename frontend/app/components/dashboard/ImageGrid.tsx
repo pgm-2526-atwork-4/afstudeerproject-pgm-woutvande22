@@ -19,11 +19,13 @@ export interface ImageItem {
 interface ImageGridProps {
   images: ImageItem[];
   collectionId?: string;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
   onReorder: (images: ImageItem[]) => void;
   onDelete?: (id: string) => void;
 }
 
-export const ImageGrid = ({ images, collectionId, onReorder, onDelete }: ImageGridProps) => (
+export const ImageGrid = ({ images, collectionId, selectedIds, onToggleSelect, onReorder, onDelete }: ImageGridProps) => (
   <SortableList
     items={images}
     onReorder={onReorder}
@@ -37,6 +39,8 @@ export const ImageGrid = ({ images, collectionId, onReorder, onDelete }: ImageGr
           url={image.url}
           tags={image.tags}
           collectionId={collectionId}
+          selected={selectedIds?.has(image.id)}
+          onSelect={onToggleSelect}
           onDelete={() => onDelete?.(image.id)}
         />
       </SortableGridItem>
