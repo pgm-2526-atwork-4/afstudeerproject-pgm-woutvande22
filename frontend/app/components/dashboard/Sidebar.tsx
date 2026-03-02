@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -30,6 +30,14 @@ export const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [collectionsOpen, setCollectionsOpen] = useState(false);
   const { logout } = useAuth();
+
+  // Expose sidebar width as a CSS variable for fixed-position elements
+  useEffect(() => {
+    document.documentElement.style.setProperty(
+      "--sidebar-w",
+      collapsed ? "4rem" : "14rem"
+    );
+  }, [collapsed]);
 
   return (
     <aside

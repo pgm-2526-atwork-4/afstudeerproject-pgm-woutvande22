@@ -103,7 +103,8 @@ export const BulkActionBar = ({
 
   return (
     <>
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 bg-gray-900 text-white rounded-xl shadow-2xl">
+      <div className="fixed bottom-6 left-[var(--sidebar-w)] right-0 z-50 flex justify-center pointer-events-none">
+        <div className="flex items-center gap-3 px-5 py-3 bg-gray-900 text-white rounded-xl shadow-2xl pointer-events-auto">
         <span className="text-sm font-medium whitespace-nowrap">
           {count} selected
         </span>
@@ -141,6 +142,7 @@ export const BulkActionBar = ({
         >
           <CloseOutlined sx={{ fontSize: 18 }} />
         </button>
+        </div>
       </div>
 
       <AddToCollectionModal
