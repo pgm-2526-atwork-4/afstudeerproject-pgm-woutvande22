@@ -6,6 +6,7 @@ import Image from "next/image";
 import { DeleteButton } from "@/app/components/dashboard/DeleteButton";
 import { DeleteImageModal } from "@/app/components/dashboard/DeleteImageModal";
 import { deletePhoto } from "@/app/lib/photos";
+import { removePhotoFromCollection } from "@/app/lib/collections";
 
 interface ImageTag {
   name: string;
@@ -36,7 +37,15 @@ export const ImageCard = ({ id, label, url, tags = [], collectionId, onDelete }:
     try {
       const token = localStorage.getItem("access_token");
       if (!token) throw new Error("Not authenticated");
-      await deletePhoto(token, Number(id));
+
+      if (collectionId) {
+        // Only remove from this collection, don't delete the photo itself
+        await removePhotoFromCollection(token, Number(collectionId), Number(id));
+      } else {
+        // Permanently delete the photo
+        await deletePhoto(token, Number(id));
+      }
+
       setShowDeleteModal(false);
       onDelete?.();
     } catch (error) {
@@ -95,6 +104,7 @@ export const ImageCard = ({ id, label, url, tags = [], collectionId, onDelete }:
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleConfirmDelete}
         isDeleting={isDeleting}
+        isCollectionRemove={!!collectionId}
       />
     </>
   );

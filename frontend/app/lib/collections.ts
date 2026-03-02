@@ -120,3 +120,25 @@ export async function fetchCollectionPhotos(
   const data = await res.json();
   return data.photos;
 }
+
+export async function removePhotoFromCollection(
+  accessToken: string,
+  collectionId: number,
+  photoId: number
+): Promise<void> {
+  const res = await fetch(
+    `${API_URL}/api/collections/${collectionId}/photos/${photoId}?access_token=${encodeURIComponent(accessToken)}`,
+    { method: "DELETE" }
+  );
+
+  if (!res.ok) {
+    let errorMessage = "Failed to remove photo from collection";
+    try {
+      const error = await res.json();
+      errorMessage = error.detail || errorMessage;
+    } catch {
+      // 204 responses may not have a body
+    }
+    throw new Error(errorMessage);
+  }
+}
