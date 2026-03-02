@@ -62,14 +62,14 @@ export const ImageCard = ({ id, label, url, tags = [], collectionId, onDelete }:
           )}
           <DeleteButton onClick={handleDeleteClick} />
         </div>
-        <div className="p-3">
-          <p className="text-sm font-medium text-gray-900 truncate">{label || "Untitled"}</p>
+        <div className="p-2">
+          <p className="text-xs font-medium text-gray-900 truncate">{label || "Untitled"}</p>
           {tags.length > 0 && (
-            <div className="flex gap-2 mt-2 flex-wrap">
+            <div className="flex gap-1 mt-1.5 flex-wrap">
               {tags.map((tag) => (
                 <span
                   key={tag}
-                  className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full"
+                  className="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[10px] rounded-full"
                 >
                   {tag}
                 </span>

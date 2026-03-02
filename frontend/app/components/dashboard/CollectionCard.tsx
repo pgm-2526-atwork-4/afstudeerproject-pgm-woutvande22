@@ -27,10 +27,10 @@ export const CollectionCard = ({
           <FavoriteBorderOutlined fontSize="medium" />
         </div>
       </div>
-      <div className="p-4">
-        <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-        <p className="text-xs text-gray-500 mt-0.5">{description}</p>
-        <p className="text-xs text-gray-400 mt-2">{imageCount} Images</p>
+      <div className="p-3">
+        <h3 className="text-xs font-semibold text-gray-900">{title}</h3>
+        <p className="text-[10px] text-gray-500 mt-0.5 truncate">{description}</p>
+        <p className="text-[10px] text-gray-400 mt-1.5">{imageCount} Images</p>
       </div>
     </article>
   </Link>
