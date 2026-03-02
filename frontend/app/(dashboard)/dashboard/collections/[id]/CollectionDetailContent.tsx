@@ -2,10 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { CollectionHeader } from "@/app/components/dashboard/CollectionHeader";
-import { CollectionImageSearchBar } from "@/app/components/dashboard/CollectionImageSearchBar";
 import { ImageGrid, type ImageItem } from "@/app/components/dashboard/ImageGrid";
 import { UploadImageModal } from "@/app/components/upload/UploadImageModal";
-import { AddPhotoAlternateOutlined } from "@mui/icons-material";
+import { AddPhotoAlternateOutlined, SearchOutlined } from "@mui/icons-material";
 import {
   fetchCollection,
   fetchCollectionPhotos,
@@ -91,10 +90,23 @@ export function CollectionDetailContent({
           collectionId={collectionId}
         />
 
-        <div className="flex items-center gap-3 mt-3">
-          <div className="flex-1">
-            <CollectionImageSearchBar />
+        <div className="flex items-center gap-4 mt-6">
+          <div className="relative flex-1">
+            <SearchOutlined
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              sx={{ fontSize: 18 }}
+            />
+            <input
+              type="text"
+              placeholder="Search images in this collection..."
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-shadow"
+            />
           </div>
+
+          <select className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent cursor-pointer">
+            <option>Tags</option>
+          </select>
+
           <button
             type="button"
             onClick={() => setShowUploadModal(true)}
