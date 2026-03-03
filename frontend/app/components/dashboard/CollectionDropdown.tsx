@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ExpandMoreOutlined, ExpandLessOutlined } from "@mui/icons-material";
+import { ExpandMoreOutlined, ExpandLessOutlined, MoreHorizOutlined } from "@mui/icons-material";
 import { fetchCollections, type Collection } from "@/app/lib/collections";
+
+const INITIAL_VISIBLE = 3;
 
 interface CollectionDropdownProps {
   children: React.ReactNode;
@@ -16,6 +18,7 @@ export const CollectionDropdown = ({ children, open, onToggle }: CollectionDropd
   const pathname = usePathname();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -36,6 +39,14 @@ export const CollectionDropdown = ({ children, open, onToggle }: CollectionDropd
 
     load();
   }, [open]);
+
+  // Reset showAll when dropdown is closed
+  useEffect(() => {
+    if (!open) setShowAll(false);
+  }, [open]);
+
+  const visibleCollections = showAll ? collections : collections.slice(0, INITIAL_VISIBLE);
+  const hasMore = collections.length > INITIAL_VISIBLE;
 
   return (
     <div>
@@ -63,24 +74,49 @@ export const CollectionDropdown = ({ children, open, onToggle }: CollectionDropd
           ) : collections.length === 0 ? (
             <li className="px-3 py-1.5 text-xs text-gray-400">No collections</li>
           ) : (
-            collections.map((col) => {
-              const colHref = `/dashboard/collections/${col.id}`;
-              const isActive = pathname === colHref;
-              return (
-                <li key={col.id}>
-                  <Link
-                    href={colHref}
-                    className={`block px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                      isActive
-                        ? "text-sky-600 bg-sky-50"
-                        : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
-                    }`}
+            <>
+              {visibleCollections.map((col) => {
+                const colHref = `/dashboard/collections/${col.id}`;
+                const isActive = pathname === colHref;
+                return (
+                  <li key={col.id}>
+                    <Link
+                      href={colHref}
+                      className={`block px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        isActive
+                          ? "text-sky-600 bg-sky-50"
+                          : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                      }`}
+                    >
+                      {col.title}
+                    </Link>
+                  </li>
+                );
+              })}
+              {hasMore && !showAll && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setShowAll(true)}
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer w-full"
                   >
-                    {col.title}
-                  </Link>
+                    <MoreHorizOutlined sx={{ fontSize: 16 }} />
+                    <span>{collections.length - INITIAL_VISIBLE} more</span>
+                  </button>
                 </li>
-              );
-            })
+              )}
+              {hasMore && showAll && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={() => setShowAll(false)}
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer w-full"
+                  >
+                    <span>Show less</span>
+                  </button>
+                </li>
+              )}
+            </>
           )}
         </ul>
       )}
