@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Query, Body
 from pydantic import BaseModel
 from typing import Optional
@@ -19,6 +20,7 @@ class CollectionResponse(BaseModel):
     image_count: int = 0
     pinned: bool = False
     cover_image_url: Optional[str] = None
+    last_used_at: Optional[str] = None
 
 
 class CollectionListResponse(BaseModel):
@@ -116,7 +118,18 @@ def _enrich_collection(supabase, row: dict) -> CollectionResponse:
         image_count=_get_image_count(supabase, row["id"]),
         pinned=row.get("pinned", False),
         cover_image_url=_get_cover_image_url(supabase, row["id"]),
+        last_used_at=row.get("last_used_at"),
     )
+
+
+def _touch_collection(supabase, collection_id: int) -> None:
+    """Update the last_used_at timestamp for a collection."""
+    try:
+        supabase.table("collections").update(
+            {"last_used_at": datetime.now(timezone.utc).isoformat()}
+        ).eq("id", collection_id).execute()
+    except Exception as e:
+        logger.warning(f"Failed to touch collection {collection_id}: {e}")
 
 
 # ──────────────────── List all collections ───────────────────────
@@ -133,7 +146,7 @@ def list_collections(access_token: str = Query(...)):
             .select("*")
             .eq("user_id", user.id)
             .order("pinned", desc=True)
-            .order("order_id")
+            .order("last_used_at", desc=True, nullsfirst=False)
             .execute()
         )
     except Exception as e:
@@ -205,6 +218,8 @@ def get_collection(collection_id: int, access_token: str = Query(...)):
 
     if not result.data:
         raise HTTPException(status_code=404, detail="Collection not found")
+
+    _touch_collection(supabase, collection_id)
 
     return _enrich_collection(supabase, result.data)
 
@@ -430,6 +445,8 @@ def add_photo_to_collection(
             raise HTTPException(status_code=409, detail="Photo already in collection")
         logger.error(f"Failed to add photo to collection: {e}")
         raise HTTPException(status_code=500, detail="Failed to add photo to collection")
+
+    _touch_collection(supabase, collection_id)
 
     return {"message": "Photo added to collection", "order_id": next_order}
 
