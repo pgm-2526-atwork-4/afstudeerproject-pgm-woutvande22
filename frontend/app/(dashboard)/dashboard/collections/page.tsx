@@ -97,7 +97,7 @@ export default function CollectionsPage() {
             No collections match your search.
           </p>
         ) : (
-          <CollectionGrid collections={filteredCollections} onReorder={setCollections} />
+          <CollectionGrid collections={filteredCollections} />
         )}
       </div>
 
