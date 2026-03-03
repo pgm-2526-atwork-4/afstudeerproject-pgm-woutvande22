@@ -9,6 +9,7 @@ import { BulkActionBar } from "@/app/components/dashboard/BulkActionBar";
 import { GenerateCollectionButton } from "@/app/components/dashboard/GenerateCollectionButton";
 import { fetchPhotos, reorderPhotos } from "@/app/lib/photos";
 import { fetchBatchPhotoTags, fetchTags, type Tag } from "@/app/lib/tags";
+import { ImageGridSkeleton } from "@/app/components/dashboard/ImageCardSkeleton";
 
 export default function DashboardPage() {
   const [images, setImages] = useState<ImageItem[]>([]);
@@ -137,7 +138,7 @@ export default function DashboardPage() {
 
       <div className="px-8">
         {loading ? (
-          <p className="text-gray-500 text-sm mt-8">Loading photos...</p>
+          <ImageGridSkeleton />
         ) : images.length === 0 ? (
           <p className="text-gray-500 text-sm mt-8">No photos yet. Upload your first image!</p>
         ) : filteredImages.length === 0 ? (

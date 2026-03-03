@@ -12,6 +12,7 @@ import {
   type Collection,
 } from "@/app/lib/collections";
 import { fetchBatchPhotoTags, fetchTags, type Tag } from "@/app/lib/tags";
+import { ImageGridSkeleton } from "@/app/components/dashboard/ImageCardSkeleton";
 
 interface CollectionDetailContentProps {
   collectionId: string;
@@ -133,8 +134,8 @@ export function CollectionDetailContent({
 
   if (loading) {
     return (
-      <div className="p-8">
-        <p className="text-sm text-gray-400">Loading collection…</p>
+      <div className="px-8 pt-8">
+        <ImageGridSkeleton />
       </div>
     );
   }

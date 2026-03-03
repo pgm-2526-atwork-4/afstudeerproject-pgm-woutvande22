@@ -10,6 +10,7 @@ import {
   fetchCollections,
   type Collection,
 } from "@/app/lib/collections";
+import { CollectionGridSkeleton } from "@/app/components/dashboard/CollectionCardSkeleton";
 
 export default function CollectionsPage() {
   const [collections, setCollections] = useState<
@@ -86,9 +87,7 @@ export default function CollectionsPage() {
 
       <div className="px-8">
         {loading ? (
-          <p className="text-sm text-gray-400 mt-10 text-center">
-            Loading collections…
-          </p>
+          <CollectionGridSkeleton />
         ) : collections.length === 0 ? (
           <p className="text-sm text-gray-400 mt-10 text-center">
             No collections yet. Create your first one!
