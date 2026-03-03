@@ -7,6 +7,7 @@ export interface Collection {
   order_id: number;
   image_count: number;
   pinned: boolean;
+  cover_image_url: string | null;
 }
 
 export async function fetchCollectionsForPhoto(

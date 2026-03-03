@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   ContentCopyOutlined,
   PushPinOutlined,
@@ -13,6 +14,7 @@ interface CollectionListItemProps {
   color: string;
   pinned?: boolean;
   onTogglePin?: (id: string) => void;
+  coverImageUrl?: string | null;
 }
 
 export const CollectionListItem = ({
@@ -23,14 +25,25 @@ export const CollectionListItem = ({
   color,
   pinned = false,
   onTogglePin,
+  coverImageUrl,
 }: CollectionListItemProps) => (
   <Link href={`/dashboard/collections/${id}`} className="block">
     <article className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex items-center gap-4 pr-4">
       <div
-        className="w-20 h-16 shrink-0 flex items-center justify-center rounded-l-xl"
+        className="w-20 h-16 shrink-0 flex items-center justify-center rounded-l-xl relative overflow-hidden"
         style={{ backgroundColor: color }}
       >
-        <ContentCopyOutlined fontSize="small" className="text-white/60" />
+        {coverImageUrl ? (
+          <Image
+            src={coverImageUrl}
+            alt={title}
+            fill
+            className="object-cover"
+            sizes="80px"
+          />
+        ) : (
+          <ContentCopyOutlined fontSize="small" className="text-white/60" />
+        )}
       </div>
 
       <div className="flex-1 min-w-0 py-2">

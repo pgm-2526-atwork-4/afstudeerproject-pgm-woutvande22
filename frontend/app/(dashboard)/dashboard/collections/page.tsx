@@ -17,7 +17,7 @@ import { GridViewOutlined, ViewListOutlined } from "@mui/icons-material";
 
 export default function CollectionsPage() {
   const [collections, setCollections] = useState<
-    { id: string; title: string; description: string; imageCount: number; color: string; pinned: boolean }[]
+    { id: string; title: string; description: string; imageCount: number; color: string; pinned: boolean; coverImageUrl: string | null }[]
   >([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -38,6 +38,7 @@ export default function CollectionsPage() {
           imageCount: c.image_count,
           color: "#4a86b5",
           pinned: c.pinned ?? false,
+          coverImageUrl: c.cover_image_url ?? null,
         }))
       );
     } catch (err) {
@@ -60,6 +61,7 @@ export default function CollectionsPage() {
         imageCount: collection.image_count,
         color: "#4a86b5",
         pinned: collection.pinned ?? false,
+        coverImageUrl: collection.cover_image_url ?? null,
       },
       ...prev,
     ]);

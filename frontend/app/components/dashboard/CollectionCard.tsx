@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   FavoriteBorderOutlined,
   ContentCopyOutlined,
@@ -14,6 +15,7 @@ interface CollectionCardProps {
   color: string;
   pinned?: boolean;
   onTogglePin?: (id: string) => void;
+  coverImageUrl?: string | null;
 }
 
 export const CollectionCard = ({
@@ -24,17 +26,28 @@ export const CollectionCard = ({
   color,
   pinned = false,
   onTogglePin,
+  coverImageUrl,
 }: CollectionCardProps) => (
   <Link href={`/dashboard/collections/${id}`} className="block">
     <article className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow relative">
       <div
-        className="aspect-[16/9] flex items-center justify-center relative"
+        className="aspect-[16/9] flex items-center justify-center relative overflow-hidden"
         style={{ backgroundColor: color }}
       >
-        <div className="flex items-center gap-1 text-white/60">
-          <ContentCopyOutlined fontSize="large" />
-          <FavoriteBorderOutlined fontSize="medium" />
-        </div>
+        {coverImageUrl ? (
+          <Image
+            src={coverImageUrl}
+            alt={title}
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+          />
+        ) : (
+          <div className="flex items-center gap-1 text-white/60">
+            <ContentCopyOutlined fontSize="large" />
+            <FavoriteBorderOutlined fontSize="medium" />
+          </div>
+        )}
 
         {onTogglePin && (
           <button

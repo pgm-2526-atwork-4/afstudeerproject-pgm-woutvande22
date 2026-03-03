@@ -18,6 +18,7 @@ class CollectionResponse(BaseModel):
     order_id: int = 0
     image_count: int = 0
     pinned: bool = False
+    cover_image_url: Optional[str] = None
 
 
 class CollectionListResponse(BaseModel):
@@ -77,8 +78,36 @@ def _get_image_count(supabase, collection_id: int) -> int:
         return 0
 
 
+def _get_cover_image_url(supabase, collection_id: int) -> Optional[str]:
+    """Return the URL of the first photo in a collection, or None."""
+    try:
+        result = (
+            supabase.table("collections_to_photos")
+            .select("photo_id")
+            .eq("collection_id", collection_id)
+            .order("order_id")
+            .limit(1)
+            .execute()
+        )
+        if not result.data:
+            return None
+        photo_id = result.data[0]["photo_id"]
+        photo_result = (
+            supabase.table("photos")
+            .select("url")
+            .eq("id", photo_id)
+            .limit(1)
+            .execute()
+        )
+        if photo_result.data:
+            return photo_result.data[0]["url"]
+        return None
+    except Exception:
+        return None
+
+
 def _enrich_collection(supabase, row: dict) -> CollectionResponse:
-    """Turn a raw DB row into a CollectionResponse with image_count."""
+    """Turn a raw DB row into a CollectionResponse with image_count and cover image."""
     return CollectionResponse(
         id=row["id"],
         title=row["title"],
@@ -86,6 +115,7 @@ def _enrich_collection(supabase, row: dict) -> CollectionResponse:
         order_id=row.get("order_id", 0),
         image_count=_get_image_count(supabase, row["id"]),
         pinned=row.get("pinned", False),
+        cover_image_url=_get_cover_image_url(supabase, row["id"]),
     )
 
 

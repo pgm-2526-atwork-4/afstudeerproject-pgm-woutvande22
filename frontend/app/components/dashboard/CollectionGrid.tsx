@@ -9,6 +9,7 @@ interface CollectionItem {
   imageCount: number;
   color: string;
   pinned?: boolean;
+  coverImageUrl?: string | null;
 }
 
 interface CollectionGridProps {
