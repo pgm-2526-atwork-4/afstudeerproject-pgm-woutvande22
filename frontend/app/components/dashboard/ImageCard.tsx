@@ -100,7 +100,7 @@ export const ImageCard = ({ id, label, url, tags = [], collectionId, selected, o
           <DeleteButton onClick={handleDeleteClick} />
         </div>
         <div className="p-2">
-          <p className="text-xs font-medium text-gray-900 truncate">{label || "Untitled"}</p>
+          {/* <p className="text-xs font-medium text-gray-900 truncate">{label || "Untitled"}</p> */}
           {tags.length > 0 && (
             <div className="flex gap-1 mt-1.5 flex-wrap">
               {tags.slice(0, 3).map((tag) => (
