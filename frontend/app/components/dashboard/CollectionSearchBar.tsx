@@ -11,7 +11,7 @@ export const CollectionSearchBar = ({
   searchQuery,
   onSearchChange,
 }: CollectionSearchBarProps) => (
-  <div className="flex items-center gap-4 mt-6">
+  <div className="flex items-center gap-4">
     <div className="relative flex-1">
       <SearchOutlined
         className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"

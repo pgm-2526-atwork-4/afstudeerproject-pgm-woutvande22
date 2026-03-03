@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { PageHeader } from "@/app/components/dashboard/PageHeader";
 import { CollectionSearchBar } from "@/app/components/dashboard/CollectionSearchBar";
 import { CollectionGrid } from "@/app/components/dashboard/CollectionGrid";
+import { CollectionListItem } from "@/app/components/dashboard/CollectionListItem";
 import { GenerateCollectionButton } from "@/app/components/dashboard/GenerateCollectionButton";
 import { CreateCollectionModal } from "@/app/components/dashboard/CreateCollectionModal";
 import {
@@ -12,6 +13,7 @@ import {
   type Collection,
 } from "@/app/lib/collections";
 import { CollectionGridSkeleton } from "@/app/components/dashboard/CollectionCardSkeleton";
+import { GridViewOutlined, ViewListOutlined } from "@mui/icons-material";
 
 export default function CollectionsPage() {
   const [collections, setCollections] = useState<
@@ -20,6 +22,7 @@ export default function CollectionsPage() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const loadCollections = useCallback(async () => {
     const token = localStorage.getItem("access_token");
@@ -103,7 +106,37 @@ export default function CollectionsPage() {
           </button>
         </div>
 
-        <CollectionSearchBar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+        <div className="flex items-center gap-2 mt-4">
+          <div className="flex-1">
+            <CollectionSearchBar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+          </div>
+          <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setViewMode("grid")}
+              className={`p-2 transition-colors cursor-pointer ${
+                viewMode === "grid"
+                  ? "bg-sky-400 text-white"
+                  : "text-gray-400 hover:text-gray-600"
+              }`}
+              title="Card view"
+            >
+              <GridViewOutlined fontSize="small" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              className={`p-2 transition-colors cursor-pointer ${
+                viewMode === "list"
+                  ? "bg-sky-400 text-white"
+                  : "text-gray-400 hover:text-gray-600"
+              }`}
+              title="List view"
+            >
+              <ViewListOutlined fontSize="small" />
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="px-8">
@@ -117,8 +150,18 @@ export default function CollectionsPage() {
           <p className="text-sm text-gray-400 mt-10 text-center">
             No collections match your search.
           </p>
-        ) : (
+        ) : viewMode === "grid" ? (
           <CollectionGrid collections={filteredCollections} onTogglePin={handleTogglePin} />
+        ) : (
+          <div className="flex flex-col gap-2 mt-6">
+            {filteredCollections.map((collection) => (
+              <CollectionListItem
+                key={collection.id}
+                {...collection}
+                onTogglePin={handleTogglePin}
+              />
+            ))}
+          </div>
         )}
       </div>
 
