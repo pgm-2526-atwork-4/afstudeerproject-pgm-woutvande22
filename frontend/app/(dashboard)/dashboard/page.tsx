@@ -15,7 +15,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTag, setSelectedTag] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
 
   const toggleSelect = useCallback((id: string) => {
@@ -110,10 +110,10 @@ export default function DashboardPage() {
       const matchesTitle = !query || (img.label?.toLowerCase().includes(query));
       const matchesTagSearch = !query || img.tags?.some((t) => t.name.toLowerCase().includes(query));
       const matchesSearch = matchesTitle || matchesTagSearch;
-      const matchesTagFilter = !selectedTag || img.tags?.some((t) => t.name === selectedTag);
+      const matchesTagFilter = selectedTags.length === 0 || selectedTags.every((st) => img.tags?.some((t) => t.name === st));
       return matchesSearch && matchesTagFilter;
     });
-  }, [images, searchQuery, selectedTag]);
+  }, [images, searchQuery, selectedTags]);
 
   return (
     <div className="pb-24">
@@ -129,8 +129,8 @@ export default function DashboardPage() {
         <SearchFilterBar
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          selectedTag={selectedTag}
-          onTagChange={setSelectedTag}
+          selectedTags={selectedTags}
+          onTagsChange={setSelectedTags}
           tags={tags}
         />
       </div>
