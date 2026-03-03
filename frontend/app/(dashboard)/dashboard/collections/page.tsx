@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { PageHeader } from "@/app/components/dashboard/PageHeader";
 import { CollectionSearchBar } from "@/app/components/dashboard/CollectionSearchBar";
 import { CollectionGrid } from "@/app/components/dashboard/CollectionGrid";
@@ -17,6 +17,7 @@ export default function CollectionsPage() {
   >([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const loadCollections = useCallback(async () => {
     const token = localStorage.getItem("access_token");
@@ -57,6 +58,12 @@ export default function CollectionsPage() {
     ]);
   };
 
+  const filteredCollections = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return collections;
+    return collections.filter((c) => c.title.toLowerCase().includes(query));
+  }, [collections, searchQuery]);
+
   return (
     <div className="pb-24">
       <div className="sticky top-0 z-10 px-8 pt-8 pb-4 bg-gray-50/80 backdrop-blur-md">
@@ -74,7 +81,7 @@ export default function CollectionsPage() {
           </button>
         </div>
 
-        <CollectionSearchBar />
+        <CollectionSearchBar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
       </div>
 
       <div className="px-8">
@@ -86,8 +93,12 @@ export default function CollectionsPage() {
           <p className="text-sm text-gray-400 mt-10 text-center">
             No collections yet. Create your first one!
           </p>
+        ) : filteredCollections.length === 0 ? (
+          <p className="text-sm text-gray-400 mt-10 text-center">
+            No collections match your search.
+          </p>
         ) : (
-          <CollectionGrid collections={collections} onReorder={setCollections} />
+          <CollectionGrid collections={filteredCollections} onReorder={setCollections} />
         )}
       </div>
 

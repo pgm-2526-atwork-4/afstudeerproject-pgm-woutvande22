@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { CollectionHeader } from "@/app/components/dashboard/CollectionHeader";
 import { ImageGrid, type ImageItem } from "@/app/components/dashboard/ImageGrid";
 import { BulkActionBar } from "@/app/components/dashboard/BulkActionBar";
@@ -11,6 +11,7 @@ import {
   fetchCollectionPhotos,
   type Collection,
 } from "@/app/lib/collections";
+import { fetchBatchPhotoTags, fetchTags, type Tag } from "@/app/lib/tags";
 
 interface CollectionDetailContentProps {
   collectionId: string;
@@ -24,6 +25,9 @@ export function CollectionDetailContent({
   const [loading, setLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTag, setSelectedTag] = useState("");
+  const [tags, setTags] = useState<Tag[]>([]);
 
   const numericId = Number(collectionId);
 
@@ -41,20 +45,39 @@ export function CollectionDetailContent({
     if (!token || isNaN(numericId)) return;
 
     try {
-      const [col, photos] = await Promise.all([
+      const [col, photos, userTags] = await Promise.all([
         fetchCollection(token, numericId),
         fetchCollectionPhotos(token, numericId),
+        fetchTags(token),
       ]);
 
       setCollection(col);
-      setImages(
-        photos.map((p) => ({
-          id: String(p.id),
-          label: p.title ?? undefined,
-          url: p.url,
-          tags: [],
-        }))
-      );
+      setTags(userTags);
+
+      const items: ImageItem[] = photos.map((p) => ({
+        id: String(p.id),
+        label: p.title ?? undefined,
+        url: p.url,
+        tags: [],
+      }));
+
+      // Fetch tags for photos in this collection
+      if (photos.length > 0) {
+        try {
+          const photoIds = photos.map((p) => p.id);
+          const tagMap = await fetchBatchPhotoTags(token, photoIds);
+          for (const item of items) {
+            const photoTags = tagMap[item.id];
+            if (photoTags && photoTags.length > 0) {
+              item.tags = photoTags.map((t) => ({ name: t.name, color_hex: t.color_hex }));
+            }
+          }
+        } catch (err) {
+          console.error("Failed to load photo tags:", err);
+        }
+      }
+
+      setImages(items);
     } catch (err) {
       console.error("Failed to load collection:", err);
     } finally {
@@ -78,6 +101,17 @@ export function CollectionDetailContent({
   const handleUploadSuccess = () => {
     loadData();
   };
+
+  const filteredImages = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    return images.filter((img) => {
+      const matchesTitle = !query || (img.label?.toLowerCase().includes(query));
+      const matchesTagSearch = !query || img.tags?.some((t) => t.name.toLowerCase().includes(query));
+      const matchesSearch = matchesTitle || matchesTagSearch;
+      const matchesTagFilter = !selectedTag || img.tags?.some((t) => t.name === selectedTag);
+      return matchesSearch && matchesTagFilter;
+    });
+  }, [images, searchQuery, selectedTag]);
 
   if (loading) {
     return (
@@ -114,13 +148,24 @@ export function CollectionDetailContent({
             />
             <input
               type="text"
-              placeholder="Search images in this collection..."
+              placeholder="Search by title or tag..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-shadow"
             />
           </div>
 
-          <select className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent cursor-pointer">
-            <option>Tags</option>
+          <select
+            value={selectedTag}
+            onChange={(e) => setSelectedTag(e.target.value)}
+            className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent cursor-pointer"
+          >
+            <option value="">All tags</option>
+            {tags.map((tag) => (
+              <option key={tag.id} value={tag.name}>
+                {tag.name}
+              </option>
+            ))}
           </select>
 
           <button
@@ -152,9 +197,11 @@ export function CollectionDetailContent({
               + Upload Image
             </button>
           </div>
+        ) : filteredImages.length === 0 ? (
+          <p className="text-gray-500 text-sm mt-8">No images match your search.</p>
         ) : (
           <ImageGrid
-            images={images}
+            images={filteredImages}
             collectionId={collectionId}
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}

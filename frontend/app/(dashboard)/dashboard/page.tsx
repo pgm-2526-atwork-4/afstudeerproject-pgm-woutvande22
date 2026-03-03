@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { PageHeader } from "@/app/components/dashboard/PageHeader";
 import { UploadButton } from "@/app/components/dashboard/UploadButton";
 import { SearchFilterBar } from "@/app/components/dashboard/SearchbarFilterBar";
@@ -8,12 +8,15 @@ import { ImageGrid, type ImageItem } from "@/app/components/dashboard/ImageGrid"
 import { BulkActionBar } from "@/app/components/dashboard/BulkActionBar";
 import { GenerateCollectionButton } from "@/app/components/dashboard/GenerateCollectionButton";
 import { fetchPhotos, reorderPhotos } from "@/app/lib/photos";
-import { fetchBatchPhotoTags } from "@/app/lib/tags";
+import { fetchBatchPhotoTags, fetchTags, type Tag } from "@/app/lib/tags";
 
 export default function DashboardPage() {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTag, setSelectedTag] = useState("");
+  const [tags, setTags] = useState<Tag[]>([]);
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -32,7 +35,13 @@ export default function DashboardPage() {
     }
 
     try {
-      const photos = await fetchPhotos(token);
+      const [photos, userTags] = await Promise.all([
+        fetchPhotos(token),
+        fetchTags(token),
+      ]);
+
+      setTags(userTags);
+
       const items: ImageItem[] = photos.map((p) => ({
         id: String(p.id),
         url: p.url,
@@ -95,6 +104,17 @@ export default function DashboardPage() {
     setImages((prev) => prev.filter((img) => !ids.includes(img.id)));
   }, []);
 
+  const filteredImages = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    return images.filter((img) => {
+      const matchesTitle = !query || (img.label?.toLowerCase().includes(query));
+      const matchesTagSearch = !query || img.tags?.some((t) => t.name.toLowerCase().includes(query));
+      const matchesSearch = matchesTitle || matchesTagSearch;
+      const matchesTagFilter = !selectedTag || img.tags?.some((t) => t.name === selectedTag);
+      return matchesSearch && matchesTagFilter;
+    });
+  }, [images, searchQuery, selectedTag]);
+
   return (
     <div className="pb-24">
       <div className="sticky top-0 z-10 px-8 pt-8 pb-4 bg-gray-50/80 backdrop-blur-md">
@@ -106,7 +126,13 @@ export default function DashboardPage() {
           <UploadButton onUploadSuccess={loadPhotos} />
         </div>
 
-        <SearchFilterBar />
+        <SearchFilterBar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedTag={selectedTag}
+          onTagChange={setSelectedTag}
+          tags={tags}
+        />
       </div>
 
       <div className="px-8">
@@ -114,9 +140,11 @@ export default function DashboardPage() {
           <p className="text-gray-500 text-sm mt-8">Loading photos...</p>
         ) : images.length === 0 ? (
           <p className="text-gray-500 text-sm mt-8">No photos yet. Upload your first image!</p>
+        ) : filteredImages.length === 0 ? (
+          <p className="text-gray-500 text-sm mt-8">No images match your search.</p>
         ) : (
           <ImageGrid
-            images={images}
+            images={filteredImages}
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}
             onReorder={handleReorder}

@@ -2,7 +2,27 @@
 
 import { SearchOutlined } from "@mui/icons-material";
 
-export const SearchFilterBar = () => (
+interface Tag {
+  id: number;
+  name: string;
+  color_hex: string;
+}
+
+interface SearchFilterBarProps {
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  selectedTag: string;
+  onTagChange: (tag: string) => void;
+  tags: Tag[];
+}
+
+export const SearchFilterBar = ({
+  searchQuery,
+  onSearchChange,
+  selectedTag,
+  onTagChange,
+  tags,
+}: SearchFilterBarProps) => (
   <div className="flex items-center gap-4 mt-6">
     <div className="relative flex-1">
       <SearchOutlined
@@ -11,21 +31,24 @@ export const SearchFilterBar = () => (
       />
       <input
         type="text"
-        placeholder="Search images..."
+        placeholder="Search by title or tag..."
+        value={searchQuery}
+        onChange={(e) => onSearchChange(e.target.value)}
         className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-shadow"
       />
     </div>
 
-    <select className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent cursor-pointer">
-      <option>All tags</option>
-      <option>typography</option>
-      <option>branding</option>
-      <option>color</option>
-      <option>ui</option>
-      <option>layout</option>
-      <option>illustration</option>
-      <option>texture</option>
-      <option>photography</option>
+    <select
+      value={selectedTag}
+      onChange={(e) => onTagChange(e.target.value)}
+      className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent cursor-pointer"
+    >
+      <option value="">All tags</option>
+      {tags.map((tag) => (
+        <option key={tag.id} value={tag.name}>
+          {tag.name}
+        </option>
+      ))}
     </select>
   </div>
 );
