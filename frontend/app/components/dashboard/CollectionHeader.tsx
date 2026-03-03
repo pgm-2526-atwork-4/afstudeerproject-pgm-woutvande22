@@ -53,15 +53,6 @@ export const CollectionHeader = ({
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-5">
-          <div
-            className="w-20 h-20 rounded-xl flex items-center justify-center shrink-0"
-            style={{ backgroundColor: color }}
-          >
-            <div className="flex items-center gap-1 text-white/60">
-              <ContentCopyOutlined fontSize="medium" />
-              <FavoriteBorderOutlined fontSize="small" />
-            </div>
-          </div>
 
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
