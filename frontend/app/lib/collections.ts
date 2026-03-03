@@ -6,6 +6,7 @@ export interface Collection {
   user_id: string;
   order_id: number;
   image_count: number;
+  pinned: boolean;
 }
 
 export async function fetchCollectionsForPhoto(
@@ -110,6 +111,23 @@ export async function deleteCollection(
     }
     throw new Error(errorMessage);
   }
+}
+
+export async function togglePinCollection(
+  accessToken: string,
+  collectionId: number
+): Promise<Collection> {
+  const res = await fetch(
+    `${API_URL}/api/collections/${collectionId}/pin?access_token=${encodeURIComponent(accessToken)}`,
+    { method: "PATCH" }
+  );
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || "Failed to toggle pin");
+  }
+
+  return res.json();
 }
 
 export interface CollectionPhoto {

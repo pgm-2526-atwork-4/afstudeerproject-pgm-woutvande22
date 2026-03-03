@@ -8,13 +8,14 @@ import { GenerateCollectionButton } from "@/app/components/dashboard/GenerateCol
 import { CreateCollectionModal } from "@/app/components/dashboard/CreateCollectionModal";
 import {
   fetchCollections,
+  togglePinCollection,
   type Collection,
 } from "@/app/lib/collections";
 import { CollectionGridSkeleton } from "@/app/components/dashboard/CollectionCardSkeleton";
 
 export default function CollectionsPage() {
   const [collections, setCollections] = useState<
-    { id: string; title: string; description: string; imageCount: number; color: string }[]
+    { id: string; title: string; description: string; imageCount: number; color: string; pinned: boolean }[]
   >([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -33,6 +34,7 @@ export default function CollectionsPage() {
           description: "",
           imageCount: c.image_count,
           color: "#4a86b5",
+          pinned: c.pinned ?? false,
         }))
       );
     } catch (err) {
@@ -54,9 +56,28 @@ export default function CollectionsPage() {
         description: "",
         imageCount: collection.image_count,
         color: "#4a86b5",
+        pinned: collection.pinned ?? false,
       },
       ...prev,
     ]);
+  };
+
+  const handleTogglePin = async (id: string) => {
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+
+    try {
+      const updated = await togglePinCollection(token, id);
+      setCollections((prev) => {
+        const newList = prev.map((c) =>
+          c.id === id ? { ...c, pinned: updated.pinned } : c
+        );
+        // Sort: pinned first, then preserve order
+        return newList.sort((a, b) => Number(b.pinned) - Number(a.pinned));
+      });
+    } catch (err) {
+      console.error("Failed to toggle pin:", err);
+    }
   };
 
   const filteredCollections = useMemo(() => {
@@ -97,7 +118,7 @@ export default function CollectionsPage() {
             No collections match your search.
           </p>
         ) : (
-          <CollectionGrid collections={filteredCollections} />
+          <CollectionGrid collections={filteredCollections} onTogglePin={handleTogglePin} />
         )}
       </div>
 

@@ -17,6 +17,7 @@ class CollectionResponse(BaseModel):
     user_id: str
     order_id: int = 0
     image_count: int = 0
+    pinned: bool = False
 
 
 class CollectionListResponse(BaseModel):
@@ -84,6 +85,7 @@ def _enrich_collection(supabase, row: dict) -> CollectionResponse:
         user_id=row["user_id"],
         order_id=row.get("order_id", 0),
         image_count=_get_image_count(supabase, row["id"]),
+        pinned=row.get("pinned", False),
     )
 
 
@@ -100,6 +102,7 @@ def list_collections(access_token: str = Query(...)):
             supabase.table("collections")
             .select("*")
             .eq("user_id", user.id)
+            .order("pinned", desc=True)
             .order("order_id")
             .execute()
         )
@@ -226,6 +229,45 @@ def update_collection(
 
 
 # ──────────────────── Delete a collection ────────────────────────
+
+
+@router.patch("/{collection_id}/pin", response_model=CollectionResponse)
+def toggle_pin_collection(collection_id: int, access_token: str = Query(...)):
+    """Toggle the pinned status of a collection."""
+    supabase = get_supabase()
+    user = _get_current_user(supabase, access_token)
+
+    existing = safe_maybe_single(
+        supabase.table("collections")
+        .select("*")
+        .eq("id", collection_id)
+        .eq("user_id", user.id)
+    )
+
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="Collection not found")
+
+    new_pinned = not existing.data.get("pinned", False)
+
+    try:
+        result = (
+            supabase.table("collections")
+            .update({"pinned": new_pinned})
+            .eq("id", collection_id)
+            .eq("user_id", user.id)
+            .execute()
+        )
+
+        if not result.data:
+            raise HTTPException(status_code=500, detail="Failed to update pin status")
+
+        return _enrich_collection(supabase, result.data[0])
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to toggle pin for collection {collection_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update pin status")
+
 
 @router.delete("/{collection_id}", status_code=204)
 def delete_collection(collection_id: int, access_token: str = Query(...)):
