@@ -154,6 +154,26 @@ export async function fetchCollectionPhotos(
   return data.photos;
 }
 
+export async function addPhotoToCollection(
+  accessToken: string,
+  collectionId: number,
+  photoId: number
+): Promise<void> {
+  const res = await fetch(
+    `${API_URL}/api/collections/${collectionId}/photos?access_token=${encodeURIComponent(accessToken)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ photo_id: photoId }),
+    }
+  );
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || "Failed to add photo to collection");
+  }
+}
+
 export async function removePhotoFromCollection(
   accessToken: string,
   collectionId: number,

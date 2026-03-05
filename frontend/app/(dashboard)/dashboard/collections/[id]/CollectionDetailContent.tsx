@@ -5,7 +5,8 @@ import { CollectionHeader } from "@/app/components/dashboard/CollectionHeader";
 import { ImageGrid, type ImageItem } from "@/app/components/dashboard/ImageGrid";
 import { BulkActionBar } from "@/app/components/dashboard/BulkActionBar";
 import { UploadImageModal } from "@/app/components/upload/UploadImageModal";
-import { AddPhotoAlternateOutlined, SearchOutlined, CloseOutlined } from "@mui/icons-material";
+import { AddExistingImagesModal } from "@/app/components/dashboard/AddExistingImagesModal";
+import { AddPhotoAlternateOutlined, SearchOutlined, CloseOutlined, CollectionsOutlined } from "@mui/icons-material";
 import {
   fetchCollection,
   fetchCollectionPhotos,
@@ -25,6 +26,7 @@ export function CollectionDetailContent({
   const [images, setImages] = useState<ImageItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showAddExistingModal, setShowAddExistingModal] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -226,11 +228,19 @@ export function CollectionDetailContent({
 
           <button
             type="button"
+            onClick={() => setShowAddExistingModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-sky-400 hover:bg-sky-500 text-white text-sm font-semibold rounded-lg transition-colors cursor-pointer shrink-0"
+          >
+            <CollectionsOutlined sx={{ fontSize: 18 }} />
+            Add Existing
+          </button>
+          <button
+            type="button"
             onClick={() => setShowUploadModal(true)}
             className="flex items-center gap-2 px-4 py-2.5 bg-sky-400 hover:bg-sky-500 text-white text-sm font-semibold rounded-lg transition-colors cursor-pointer shrink-0"
           >
             <AddPhotoAlternateOutlined sx={{ fontSize: 18 }} />
-            Add Image
+            Upload Image
           </button>
         </div>
 
@@ -267,13 +277,25 @@ export function CollectionDetailContent({
             <p className="text-sm text-gray-400 mb-4">
               This collection is empty. Upload your first image!
             </p>
-            <button
-              type="button"
-              onClick={() => setShowUploadModal(true)}
-              className="px-5 py-2.5 bg-sky-400 hover:bg-sky-500 text-white text-sm font-semibold rounded-lg transition-colors cursor-pointer"
-            >
-              + Upload Image
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => setShowAddExistingModal(true)}
+                className="flex items-center gap-2 px-6 py-3 bg-sky-400 hover:bg-sky-500 text-white text-sm font-semibold rounded-lg transition-colors cursor-pointer"
+              >
+                <CollectionsOutlined sx={{ fontSize: 18 }} />
+                Add Existing
+              </button>
+              <p className="text-gray-400">or</p>
+              <button
+                type="button"
+                onClick={() => setShowUploadModal(true)}
+                className="flex items-center gap-2 px-6 py-3 bg-sky-400 hover:bg-sky-500 text-white text-sm font-semibold rounded-lg transition-colors cursor-pointer"
+              >
+                <AddPhotoAlternateOutlined sx={{ fontSize: 18 }} />
+                Upload Image
+              </button>
+            </div>
           </div>
         ) : filteredImages.length === 0 ? (
           <p className="text-gray-500 text-sm mt-8">No images match your search.</p>
@@ -301,6 +323,13 @@ export function CollectionDetailContent({
         onClose={() => setShowUploadModal(false)}
         onUploadSuccess={handleUploadSuccess}
         collectionId={numericId}
+      />
+
+      <AddExistingImagesModal
+        open={showAddExistingModal}
+        onClose={() => setShowAddExistingModal(false)}
+        collectionId={numericId}
+        onSuccess={loadData}
       />
     </article>
   );
