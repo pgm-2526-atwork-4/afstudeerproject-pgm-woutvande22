@@ -34,6 +34,9 @@ export const TagList = ({ tags, allTags, disabled, onAdd, onRemove, onCreate }: 
   const attachedIds = new Set(tags.map((t) => t.id));
   const trimmed = query.trim().toLowerCase();
 
+  // Check if the typed tag is already attached to this image
+  const isDuplicate = trimmed.length > 0 && tags.some((t) => t.name.toLowerCase() === trimmed);
+
   // Filter: tags not yet attached, matching the query
   const suggestions = allTags.filter(
     (t) => !attachedIds.has(t.id) && t.name.toLowerCase().includes(trimmed)
@@ -41,9 +44,10 @@ export const TagList = ({ tags, allTags, disabled, onAdd, onRemove, onCreate }: 
 
   // Show "Create" option if query doesn't match any existing tag name exactly
   const exactMatch = allTags.some((t) => t.name.toLowerCase() === trimmed);
-  const showCreate = trimmed.length > 0 && !exactMatch;
+  const showCreate = trimmed.length > 0 && !exactMatch && !isDuplicate;
 
   const handleSelect = (tag: Tag) => {
+    if (attachedIds.has(tag.id)) return;
     onAdd(tag);
     setQuery("");
     setOpen(false);
@@ -59,6 +63,7 @@ export const TagList = ({ tags, allTags, disabled, onAdd, onRemove, onCreate }: 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       e.preventDefault();
+      if (isDuplicate) return;
       if (suggestions.length === 1) {
         handleSelect(suggestions[0]);
       } else if (showCreate && suggestions.length === 0) {
@@ -118,8 +123,15 @@ export const TagList = ({ tags, allTags, disabled, onAdd, onRemove, onCreate }: 
   
         </div>
 
+        {/* Duplicate warning */}
+        {isDuplicate && (
+          <p className="mt-1 text-xs text-amber-600">
+            This tag is already added to this image.
+          </p>
+        )}
+
         {/* Dropdown */}
-        {open && (suggestions.length > 0 || showCreate) && (
+        {open && !isDuplicate && (suggestions.length > 0 || showCreate) && (
           <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
             {suggestions.map((tag) => (
               <button
