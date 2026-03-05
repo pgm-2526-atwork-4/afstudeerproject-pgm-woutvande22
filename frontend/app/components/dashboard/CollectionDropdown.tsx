@@ -7,7 +7,7 @@ import { ExpandMoreOutlined, ExpandLessOutlined, MoreHorizOutlined } from "@mui/
 import { fetchCollections, type Collection } from "@/app/lib/collections";
 import { COLLECTIONS_CHANGED } from "@/app/lib/events";
 
-const INITIAL_VISIBLE = 3;
+const MAX_VISIBLE = 5;
 
 interface CollectionDropdownProps {
   children: React.ReactNode;
@@ -19,7 +19,6 @@ export const CollectionDropdown = ({ children, open, onToggle }: CollectionDropd
   const pathname = usePathname();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showAll, setShowAll] = useState(false);
 
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -50,13 +49,8 @@ export const CollectionDropdown = ({ children, open, onToggle }: CollectionDropd
     load();
   }, [open, refreshKey]);
 
-  // Reset showAll when dropdown is closed
-  useEffect(() => {
-    if (!open) setShowAll(false);
-  }, [open]);
-
-  const visibleCollections = showAll ? collections : collections.slice(0, INITIAL_VISIBLE);
-  const hasMore = collections.length > INITIAL_VISIBLE;
+  const visibleCollections = collections.slice(0, MAX_VISIBLE);
+  const hasMore = collections.length > MAX_VISIBLE;
 
   return (
     <div>
@@ -103,27 +97,15 @@ export const CollectionDropdown = ({ children, open, onToggle }: CollectionDropd
                   </li>
                 );
               })}
-              {hasMore && !showAll && (
+              {hasMore && (
                 <li>
-                  <button
-                    type="button"
-                    onClick={() => setShowAll(true)}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer w-full"
+                  <Link
+                    href="/dashboard/collections"
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors w-full"
                   >
                     <MoreHorizOutlined sx={{ fontSize: 16 }} />
-                    <span>{collections.length - INITIAL_VISIBLE} more</span>
-                  </button>
-                </li>
-              )}
-              {hasMore && showAll && (
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => setShowAll(false)}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer w-full"
-                  >
-                    <span>Show less</span>
-                  </button>
+                    <span>{collections.length - MAX_VISIBLE} more</span>
+                  </Link>
                 </li>
               )}
             </>
