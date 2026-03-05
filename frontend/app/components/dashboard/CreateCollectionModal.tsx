@@ -5,6 +5,7 @@ import { Modal } from "@/app/components/ui/Modal";
 import { FormInput } from "@/app/components/ui/FormInput";
 import { Button } from "@/app/components/ui/Button";
 import { createCollection, type Collection } from "@/app/lib/collections";
+import { dispatchCollectionsChanged } from "@/app/lib/events";
 
 interface CreateCollectionModalProps {
   open: boolean;
@@ -42,6 +43,7 @@ export const CreateCollectionModal = ({
         title: title.trim(),
       });
       onCreated(collection);
+      dispatchCollectionsChanged();
       handleClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create collection");

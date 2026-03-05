@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ContentCopyOutlined, FavoriteBorderOutlined, GridViewOutlined, DeleteOutlined } from "@mui/icons-material";
 import { Modal } from "@/app/components/ui/Modal";
 import { deleteCollection } from "@/app/lib/collections";
+import { dispatchCollectionsChanged } from "@/app/lib/events";
 
 interface CollectionHeaderProps {
   title: string;
@@ -34,6 +35,7 @@ export const CollectionHeader = ({
     setIsDeleting(true);
     try {
       await deleteCollection(token, Number(collectionId));
+      dispatchCollectionsChanged();
       router.push("/dashboard/collections");
     } catch (err) {
       console.error("Failed to delete collection:", err);

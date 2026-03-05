@@ -19,6 +19,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import { fetchPhotos } from "@/app/lib/photos";
 import { fetchCollections } from "@/app/lib/collections";
 import { fetchTags } from "@/app/lib/tags";
+import { COLLECTIONS_CHANGED } from "@/app/lib/events";
 
 const navItems = [
   { label: "All Images", href: "/dashboard", icon: <ImageOutlined />, countKey: "photos" as const },
@@ -34,6 +35,14 @@ export const Sidebar = () => {
   const [collectionsOpen, setCollectionsOpen] = useState(false);
   const { logout } = useAuth();
   const [counts, setCounts] = useState<{ photos?: number; collections?: number; tags?: number }>({});
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Re-fetch counts whenever collections change anywhere in the app
+  useEffect(() => {
+    const handler = () => setRefreshKey((k) => k + 1);
+    window.addEventListener(COLLECTIONS_CHANGED, handler);
+    return () => window.removeEventListener(COLLECTIONS_CHANGED, handler);
+  }, []);
 
   // Fetch counts for sidebar badges
   useEffect(() => {
@@ -51,7 +60,7 @@ export const Sidebar = () => {
         tags: tagsRes.status === "fulfilled" ? tagsRes.value.length : undefined,
       });
     });
-  }, []);
+  }, [refreshKey]);
 
   // Expose sidebar width as a CSS variable for fixed-position elements
   useEffect(() => {

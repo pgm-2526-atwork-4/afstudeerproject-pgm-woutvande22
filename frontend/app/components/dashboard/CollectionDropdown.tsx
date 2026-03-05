@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ExpandMoreOutlined, ExpandLessOutlined, MoreHorizOutlined } from "@mui/icons-material";
 import { fetchCollections, type Collection } from "@/app/lib/collections";
+import { COLLECTIONS_CHANGED } from "@/app/lib/events";
 
 const INITIAL_VISIBLE = 3;
 
@@ -19,6 +20,15 @@ export const CollectionDropdown = ({ children, open, onToggle }: CollectionDropd
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAll, setShowAll] = useState(false);
+
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Re-fetch collections list when they change anywhere in the app
+  useEffect(() => {
+    const handler = () => setRefreshKey((k) => k + 1);
+    window.addEventListener(COLLECTIONS_CHANGED, handler);
+    return () => window.removeEventListener(COLLECTIONS_CHANGED, handler);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -38,7 +48,7 @@ export const CollectionDropdown = ({ children, open, onToggle }: CollectionDropd
     };
 
     load();
-  }, [open]);
+  }, [open, refreshKey]);
 
   // Reset showAll when dropdown is closed
   useEffect(() => {
