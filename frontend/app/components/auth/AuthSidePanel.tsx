@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { BackButton } from "@/app/components/ui/BackButton";
 
 interface AuthSidePanelProps {
   title: string;
@@ -7,12 +7,9 @@ interface AuthSidePanelProps {
 
 export const AuthSidePanel = ({ title, description }: AuthSidePanelProps) => (
 <aside className="hidden lg:flex lg:w-1/2 bg-gray-200 items-center justify-center relative">
-  <Link
-    href="/"
-    className="absolute left-8 top-8 text-sm hover:underline"
-  >
-    ← Back
-  </Link>
+  <div className="absolute left-8 top-8">
+    <BackButton href="/" label="Back" />
+  </div>
   
   <div className="text-center px-12">
     <h2 className="text-5xl font-bold text-gray-900">{title}</h2>

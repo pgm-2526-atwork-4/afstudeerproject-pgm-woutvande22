@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ContentCopyOutlined, FavoriteBorderOutlined, GridViewOutlined, DeleteOutlined } from "@mui/icons-material";
+import { GridViewOutlined, DeleteOutlined } from "@mui/icons-material";
 import { Modal } from "@/app/components/ui/Modal";
+import { BackButton } from "@/app/components/ui/BackButton";
 import { deleteCollection } from "@/app/lib/collections";
 import { dispatchCollectionsChanged } from "@/app/lib/events";
 
@@ -46,12 +47,9 @@ export const CollectionHeader = ({
 
   return (
     <div>
-      <Link
-        href="/dashboard/collections"
-        className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors mb-4"
-      >
-        ← Back to Collections
-      </Link>
+      <div className="mb-4">
+        <BackButton href="/dashboard/collections" label="Back to Collections" />
+      </div>
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-5">

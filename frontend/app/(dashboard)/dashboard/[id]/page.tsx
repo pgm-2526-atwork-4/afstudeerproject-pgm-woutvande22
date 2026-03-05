@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/app/components/dashboard/PageHeader";
+import { BackButton } from "@/app/components/ui/BackButton";
 import { ImagePreview } from "@/app/components/dashboard/ImagePreview";
 import { ImageDetailsForm } from "@/app/components/dashboard/ImageDetailsForm";
 import { type Photo, fetchPhotos, updatePhoto } from "@/app/lib/photos";
@@ -184,26 +184,27 @@ export default function ImageDetailPage() {
     return (
       <div className="p-8">
         <p className="text-gray-500">Image not found.</p>
-        <Link href="/dashboard" className="text-sky-500 hover:text-sky-600 text-sm mt-2 inline-block">
-          ← Back to All Images
-        </Link>
+        <div className="mt-2">
+          <BackButton href="/dashboard" label="Back to All Images" />
+        </div>
       </div>
     );
   }
 
   return (
     <article className="p-8">
+      <div className="mb-4">
+        <BackButton
+          href={collection ? `/dashboard/collections/${collection}` : "/dashboard"}
+          label={collection ? "Back to Collection" : "Back to All Images"}
+        />
+      </div>
+
       <div className="flex items-center justify-between mb-8">
         <PageHeader
           title="Image Details"
           description="Edit and manage your image details"
         />
-        <Link
-          href={collection ? `/dashboard/collections/${collection}` : "/dashboard"}
-          className="flex items-center gap-2 px-5 py-2.5 bg-sky-400 hover:bg-sky-500 text-white text-sm font-semibold rounded-lg transition-colors"
-        >
-          {collection ? "← Back to Collection" : "← Back to All Images"}
-        </Link>
       </div>
 
       <div className="flex gap-8 flex-col lg:flex-row">

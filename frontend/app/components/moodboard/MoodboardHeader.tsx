@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import {
-  ArrowBackOutlined,
   ZoomInOutlined,
   ZoomOutOutlined,
   FileDownloadOutlined,
   TextFieldsOutlined,
 } from "@mui/icons-material";
+import { BackButton } from "@/app/components/ui/BackButton";
 
 interface MoodboardHeaderProps {
   title: string;
@@ -46,13 +45,10 @@ export function MoodboardHeader({
   return (
     <header className="flex items-center justify-between px-4 py-2.5 border-b border-gray-200 bg-white">
       <div className="flex items-center gap-3">
-        <Link
+        <BackButton
           href={`/dashboard/collections/${collectionId}`}
-          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors"
-        >
-          <ArrowBackOutlined sx={{ fontSize: 16 }} />
-          Back to Collection
-        </Link>
+          label="Back to Collection"
+        />
 
         <div className="w-px h-5 bg-gray-200" />
 
