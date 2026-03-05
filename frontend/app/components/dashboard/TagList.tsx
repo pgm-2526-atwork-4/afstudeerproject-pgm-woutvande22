@@ -115,22 +115,7 @@ export const TagList = ({ tags, allTags, disabled, onAdd, onRemove, onCreate }: 
             placeholder="Add custom tag..."
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-shadow disabled:opacity-50"
           />
-          <button
-            type="button"
-            disabled={disabled || trimmed.length === 0}
-            onClick={() => {
-              if (suggestions.length === 1 && suggestions[0].name.toLowerCase() === trimmed) {
-                handleSelect(suggestions[0]);
-              } else if (showCreate) {
-                handleCreate();
-              } else if (suggestions.length > 0) {
-                handleSelect(suggestions[0]);
-              }
-            }}
-            className="px-4 py-2 bg-sky-400 hover:bg-sky-500 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            + Add
-          </button>
+  
         </div>
 
         {/* Dropdown */}
