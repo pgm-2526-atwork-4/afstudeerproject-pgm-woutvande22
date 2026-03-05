@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/app/components/dashboard/PageHeader";
 import { BackButton } from "@/app/components/ui/BackButton";
@@ -29,12 +29,13 @@ export default function ImageDetailPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const id = params.id;
   const collection = searchParams.get("collection") ?? undefined;
 
-  const [photo, setPhoto] = useState<Photo | null>(null);
-  const [allIds, setAllIds] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  // ── Current photo is tracked by state, not by the URL param ──
+  const [currentId, setCurrentId] = useState(params.id);
+  const [allPhotos, setAllPhotos] = useState<Photo[]>([]);
+  const [photosLoaded, setPhotosLoaded] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   // Tag state
   const [photoTags, setPhotoTags] = useState<Tag[]>([]);
@@ -45,75 +46,136 @@ export default function ImageDetailPage() {
   const [photoCollections, setPhotoCollections] = useState<Collection[]>([]);
   const [collectionsLoading, setCollectionsLoading] = useState(false);
 
-  // Load photo data
+  // Cache for prefetched data (keyed by photo id)
+  const prefetchCache = useRef<
+    Map<number, { tags?: Tag[]; collections?: Collection[] }>
+  >(new Map());
+  const allTagsFetched = useRef(false);
+
+  // ── 1. Fetch the photo list ONCE and cache it ──
   useEffect(() => {
+    if (photosLoaded) return;
     const token = localStorage.getItem("access_token");
     if (!token) {
-      setLoading(false);
+      setInitialLoading(false);
       return;
     }
 
     fetchPhotos(token)
       .then((photos) => {
-        const ids = photos.map((p) => String(p.id));
-        setAllIds(ids);
-        const found = photos.find((p) => String(p.id) === id);
-        setPhoto(found ?? null);
+        setAllPhotos(photos);
+        setPhotosLoaded(true);
       })
-      .catch((err) => console.error("Failed to load photo:", err))
-      .finally(() => setLoading(false));
-  }, [id]);
+      .catch((err) => console.error("Failed to load photos:", err))
+      .finally(() => setInitialLoading(false));
+  }, [photosLoaded]);
 
-  // Load tags when photo is available
+  // Derive current photo & id list from cached list
+  const photo = useMemo(
+    () => allPhotos.find((p) => String(p.id) === currentId) ?? null,
+    [allPhotos, currentId]
+  );
+  const allIds = useMemo(() => allPhotos.map((p) => String(p.id)), [allPhotos]);
+  const currentIndex = allIds.indexOf(currentId);
+
+  // ── Navigate prev/next without remounting ──
+  const goToPhoto = useCallback(
+    (targetId: string) => {
+      setCurrentId(targetId);
+      // Update the URL bar without a full navigation / remount
+      const collectionParam = collection ? `?collection=${collection}` : "";
+      window.history.replaceState(null, "", `/dashboard/${targetId}${collectionParam}`);
+    },
+    [collection]
+  );
+
+  const goPrev = useCallback(() => {
+    if (currentIndex > 0) goToPhoto(allIds[currentIndex - 1]);
+  }, [currentIndex, allIds, goToPhoto]);
+
+  const goNext = useCallback(() => {
+    if (currentIndex >= 0 && currentIndex < allIds.length - 1) goToPhoto(allIds[currentIndex + 1]);
+  }, [currentIndex, allIds, goToPhoto]);
+
+  // ── 2. Load tags + collections IN PARALLEL, using prefetch cache if available ──
   useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (!token || !photo) return;
 
-    const loadTags = async () => {
+    let cancelled = false;
+
+    const loadData = async () => {
       setTagsLoading(true);
-      try {
-        const [pTags, aTags] = await Promise.all([
-          getPhotoTags(token, photo.id),
-          fetchTags(token),
-        ]);
-        setPhotoTags(pTags);
-        setAllTags(aTags);
-      } catch (err) {
-        console.error("Failed to load tags:", err);
-      } finally {
-        setTagsLoading(false);
-      }
-    };
-
-    loadTags();
-  }, [photo]);
-
-  // Load collections for this photo
-  useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (!token || !photo) return;
-
-    const loadCollections = async () => {
       setCollectionsLoading(true);
+
+      const cached = prefetchCache.current.get(photo.id);
+
       try {
-        const cols = await fetchCollectionsForPhoto(token, photo.id);
+        const [pTags, aTags, cols] = await Promise.all([
+          cached?.tags ? Promise.resolve(cached.tags) : getPhotoTags(token, photo.id),
+          allTagsFetched.current ? Promise.resolve(allTags) : fetchTags(token),
+          cached?.collections
+            ? Promise.resolve(cached.collections)
+            : fetchCollectionsForPhoto(token, photo.id),
+        ]);
+
+        if (cancelled) return;
+
+        setPhotoTags(pTags);
+        if (!allTagsFetched.current) {
+          setAllTags(aTags);
+          allTagsFetched.current = true;
+        }
         setPhotoCollections(cols);
       } catch (err) {
-        console.error("Failed to load collections:", err);
+        console.error("Failed to load image data:", err);
       } finally {
-        setCollectionsLoading(false);
+        if (!cancelled) {
+          setTagsLoading(false);
+          setCollectionsLoading(false);
+        }
       }
     };
 
-    loadCollections();
-  }, [photo]);
+    loadData();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photo?.id]);
+
+  // ── 3. Prefetch adjacent image data in the background ──
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token || allIds.length === 0) return;
+
+    const adjacentIds: number[] = [];
+    if (currentIndex > 0) adjacentIds.push(Number(allIds[currentIndex - 1]));
+    if (currentIndex < allIds.length - 1) adjacentIds.push(Number(allIds[currentIndex + 1]));
+
+    adjacentIds.forEach((adjId) => {
+      if (prefetchCache.current.has(adjId)) return;
+      prefetchCache.current.set(adjId, {});
+
+      Promise.all([
+        getPhotoTags(token, adjId),
+        fetchCollectionsForPhoto(token, adjId),
+      ])
+        .then(([tags, collections]) => {
+          prefetchCache.current.set(adjId, { tags, collections });
+        })
+        .catch(() => {
+          prefetchCache.current.delete(adjId);
+        });
+    });
+  }, [currentId, allIds, currentIndex]);
 
   const handleSave = useCallback(async (title: string) => {
     const token = localStorage.getItem("access_token");
     if (!token || !photo) return;
 
     const updated = await updatePhoto(token, photo.id, { title });
-    setPhoto(updated);
+    setAllPhotos((prev) =>
+      prev.map((p) => (p.id === updated.id ? updated : p))
+    );
   }, [photo]);
 
   const handleCancel = useCallback(() => {
@@ -151,7 +213,6 @@ export default function ImageDetailPage() {
     try {
       const color = DEFAULT_COLORS[Math.floor(Math.random() * DEFAULT_COLORS.length)];
       const newTag = await createTag(token, name, color);
-      // Add to the global list and attach to this photo
       setAllTags((prev) => [...prev, newTag]);
       await addTagToPhoto(token, photo.id, newTag.id);
       setPhotoTags((prev) => [...prev, newTag]);
@@ -160,19 +221,13 @@ export default function ImageDetailPage() {
     }
   }, [photo]);
 
-  // Compute prev/next
-  const currentIndex = allIds.indexOf(id);
-  const collectionParam = collection ? `?collection=${collection}` : "";
-  const prevHref =
-    currentIndex > 0
-      ? `/dashboard/${allIds[currentIndex - 1]}${collectionParam}`
-      : undefined;
-  const nextHref =
-    currentIndex >= 0 && currentIndex < allIds.length - 1
-      ? `/dashboard/${allIds[currentIndex + 1]}${collectionParam}`
-      : undefined;
+  // Preload adjacent image files
+  const prevPhoto = currentIndex > 0 ? allPhotos[currentIndex - 1] : null;
+  const nextPhoto = currentIndex < allPhotos.length - 1 ? allPhotos[currentIndex + 1] : null;
+  const hasPrev = currentIndex > 0;
+  const hasNext = currentIndex >= 0 && currentIndex < allIds.length - 1;
 
-  if (loading) {
+  if (initialLoading) {
     return (
       <div className="p-8">
         <p className="text-gray-500 text-sm">Loading...</p>
@@ -211,12 +266,13 @@ export default function ImageDetailPage() {
         <ImagePreview
           url={photo.url}
           alt={`Photo ${photo.id}`}
-          prevHref={prevHref}
-          nextHref={nextHref}
+          onPrev={hasPrev ? goPrev : undefined}
+          onNext={hasNext ? goNext : undefined}
         />
 
         <div className="flex-1">
           <ImageDetailsForm
+            key={photo.id}
             title={photo.title || `Photo ${photo.id}`}
             size={`${photo.file_size_mb} MB`}
             uploadedAt={photo.created_at}
@@ -232,6 +288,18 @@ export default function ImageDetailPage() {
             onCreateTag={handleCreateTag}
           />
         </div>
+      </div>
+
+      {/* Preload adjacent images for instant navigation */}
+      <div className="hidden" aria-hidden>
+        {prevPhoto?.url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={prevPhoto.url} alt="" />
+        )}
+        {nextPhoto?.url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={nextPhoto.url} alt="" />
+        )}
       </div>
     </article>
   );
