@@ -232,7 +232,7 @@ export function CollectionDetailContent({
             className="flex items-center gap-2 px-4 py-2.5 bg-sky-400 hover:bg-sky-500 text-white text-sm font-semibold rounded-lg transition-colors cursor-pointer shrink-0"
           >
             <CollectionsOutlined sx={{ fontSize: 18 }} />
-            Add Existing
+            Add From Library
           </button>
           <button
             type="button"
@@ -275,7 +275,7 @@ export function CollectionDetailContent({
               className="text-gray-300 mb-3"
             />
             <p className="text-sm text-gray-400 mb-4">
-              This collection is empty. Upload your first image!
+              Looks like this collection is empty. Add your first image to get started.
             </p>
             <div className="flex items-center gap-4">
               <button
@@ -284,7 +284,7 @@ export function CollectionDetailContent({
                 className="flex items-center gap-2 px-6 py-3 bg-sky-400 hover:bg-sky-500 text-white text-sm font-semibold rounded-lg transition-colors cursor-pointer"
               >
                 <CollectionsOutlined sx={{ fontSize: 18 }} />
-                Add Existing
+                Add From Library
               </button>
               <p className="text-gray-400">or</p>
               <button

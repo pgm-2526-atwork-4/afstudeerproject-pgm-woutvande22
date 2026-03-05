@@ -8,9 +8,10 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  size?: "default" | "lg" | "xl";
 }
 
-export const Modal = ({ open, onClose, title, children }: ModalProps) => {
+export const Modal = ({ open, onClose, title, children, size = "default" }: ModalProps) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -43,7 +44,9 @@ export const Modal = ({ open, onClose, title, children }: ModalProps) => {
     <dialog
       ref={dialogRef}
       onClick={handleBackdropClick}
-      className="bg-transparent p-0 m-auto max-w-lg w-full open:flex open:items-center open:justify-center"
+      className={`bg-transparent p-0 m-auto w-full open:flex open:items-center open:justify-center ${
+        size === "xl" ? "max-w-4xl" : size === "lg" ? "max-w-2xl" : "max-w-lg"
+      }`}
     >
       <div className="bg-white rounded-2xl shadow-xl w-full max-h-[90vh] overflow-y-auto">
         <header className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
