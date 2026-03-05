@@ -55,7 +55,7 @@ export const SearchFilterBar = ({
           />
           <input
             type="text"
-            placeholder="Search by title or tag..."
+            placeholder="Search by title or tags (space-separated)..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-shadow"

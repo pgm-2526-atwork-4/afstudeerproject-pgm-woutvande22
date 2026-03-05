@@ -107,10 +107,13 @@ export default function DashboardPage() {
 
   const filteredImages = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
+    const searchTerms = query ? query.split(/\s+/).filter(Boolean) : [];
     return images.filter((img) => {
-      const matchesTitle = !query || (img.label?.toLowerCase().includes(query));
-      const matchesTagSearch = !query || img.tags?.some((t) => t.name.toLowerCase().includes(query));
-      const matchesSearch = matchesTitle || matchesTagSearch;
+      const matchesSearch = searchTerms.length === 0 || searchTerms.every((term) => {
+        const matchesTitle = img.label?.toLowerCase().includes(term);
+        const matchesTag = img.tags?.some((t) => t.name.toLowerCase().includes(term));
+        return matchesTitle || matchesTag;
+      });
       const matchesTagFilter = selectedTags.length === 0 || selectedTags.every((st) => img.tags?.some((t) => t.name === st));
       return matchesSearch && matchesTagFilter;
     });
