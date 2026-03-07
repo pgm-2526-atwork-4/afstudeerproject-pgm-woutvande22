@@ -20,10 +20,7 @@ import {
   type Collection,
 } from "@/app/lib/collections";
 
-const DEFAULT_COLORS = [
-  "#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6",
-  "#EC4899", "#14B8A6", "#F97316", "#6366F1", "#06B6D4",
-];
+const DEFAULT_COLOR = "#3B82F6";
 
 export default function ImageDetailPage() {
   const params = useParams<{ id: string }>();
@@ -211,8 +208,7 @@ export default function ImageDetailPage() {
     if (!token || !photo) return;
 
     try {
-      const color = DEFAULT_COLORS[Math.floor(Math.random() * DEFAULT_COLORS.length)];
-      const newTag = await createTag(token, name, color);
+      const newTag = await createTag(token, name, DEFAULT_COLOR);
       setAllTags((prev) => [...prev, newTag]);
       await addTagToPhoto(token, photo.id, newTag.id);
       setPhotoTags((prev) => [...prev, newTag]);
