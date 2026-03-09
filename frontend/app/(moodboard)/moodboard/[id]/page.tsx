@@ -19,7 +19,7 @@ export default function MoodboardPage() {
   const [items, setItems] = useState<MoodboardItemData[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
-  const [bgColor, setBgColor] = useState("#ffffff");
+  const [bgColor, setBgColor] = useState("#EDEDED");
   const [photoTags, setPhotoTags] = useState<Record<string, Tag[]>>({});
 
   useEffect(() => {
@@ -55,19 +55,37 @@ export default function MoodboardPage() {
           )
         );
 
-        // Lay out photos in a grid-like pattern on the canvas
+        // Lay out photos in a grid without overlapping
         const COLS = 3;
         const GAP_X = 280;
-        const GAP_Y = 240;
+        const GAP = 40;
         const START_X = 80;
         const START_Y = 60;
 
+        // Pre-compute base heights
+        const heights = imageSizes.map(({ w, h }) => {
+          const aspect = h / (w || 1);
+          return Math.round(BASE_WIDTH * aspect);
+        });
+
+        // Track Y offset per row based on tallest image in previous rows
+        const rowTops: number[] = [START_Y];
+
         const moodboardItems: MoodboardItemData[] = photos.map(
           (photo, idx) => {
-            const { w, h } = imageSizes[idx];
-            const aspect = h / (w || 1);
-            const baseW = BASE_WIDTH;
-            const baseH = Math.round(baseW * aspect);
+            const col = idx % COLS;
+            const row = Math.floor(idx / COLS);
+            const baseH = heights[idx];
+
+            // When starting a new row, compute its top from tallest in previous row
+            if (row >= rowTops.length) {
+              const prevRowStart = (row - 1) * COLS;
+              const prevRowEnd = Math.min(prevRowStart + COLS, photos.length);
+              const maxH = Math.max(
+                ...heights.slice(prevRowStart, prevRowEnd)
+              );
+              rowTops.push(rowTops[row - 1] + maxH + GAP);
+            }
 
             return {
               id: String(photo.id),
@@ -75,10 +93,10 @@ export default function MoodboardPage() {
               label: photo.title || `Image ${idx + 1}`,
               color: "#e2e8f0",
               imageUrl: photo.url,
-              x: START_X + (idx % COLS) * GAP_X,
-              y: START_Y + Math.floor(idx / COLS) * GAP_Y,
+              x: START_X + col * GAP_X,
+              y: rowTops[row],
               scale: 1,
-              baseWidth: baseW,
+              baseWidth: BASE_WIDTH,
               baseHeight: baseH,
               zIndex: idx,
             };
