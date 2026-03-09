@@ -40,6 +40,21 @@ export default function MoodboardPage() {
 
         setCollectionTitle(col.title);
 
+        // Load natural image dimensions
+        const BASE_WIDTH = 240;
+        const imageSizes = await Promise.all(
+          photos.map(
+            (photo) =>
+              new Promise<{ w: number; h: number }>((resolve) => {
+                const img = new Image();
+                img.onload = () =>
+                  resolve({ w: img.naturalWidth, h: img.naturalHeight });
+                img.onerror = () => resolve({ w: BASE_WIDTH, h: BASE_WIDTH });
+                img.src = photo.url;
+              })
+          )
+        );
+
         // Lay out photos in a grid-like pattern on the canvas
         const COLS = 3;
         const GAP_X = 280;
@@ -48,19 +63,26 @@ export default function MoodboardPage() {
         const START_Y = 60;
 
         const moodboardItems: MoodboardItemData[] = photos.map(
-          (photo, idx) => ({
-            id: String(photo.id),
-            type: "image" as const,
-            label: photo.title || `Image ${idx + 1}`,
-            color: "#e2e8f0",
-            imageUrl: photo.url,
-            x: START_X + (idx % COLS) * GAP_X,
-            y: START_Y + Math.floor(idx / COLS) * GAP_Y,
-            scale: 1,
-            baseWidth: 240,
-            baseHeight: 200,
-            zIndex: idx,
-          })
+          (photo, idx) => {
+            const { w, h } = imageSizes[idx];
+            const aspect = h / (w || 1);
+            const baseW = BASE_WIDTH;
+            const baseH = Math.round(baseW * aspect);
+
+            return {
+              id: String(photo.id),
+              type: "image" as const,
+              label: photo.title || `Image ${idx + 1}`,
+              color: "#e2e8f0",
+              imageUrl: photo.url,
+              x: START_X + (idx % COLS) * GAP_X,
+              y: START_Y + Math.floor(idx / COLS) * GAP_Y,
+              scale: 1,
+              baseWidth: baseW,
+              baseHeight: baseH,
+              zIndex: idx,
+            };
+          }
         );
 
         setItems(moodboardItems);
