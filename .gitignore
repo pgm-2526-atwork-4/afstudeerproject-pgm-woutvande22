@@ -12,3 +12,6 @@ ENV/
 
 # Omgevingsvariabelen (bevatten geheime keys)
 .env
+
+# Copilot instructions
+.github/instructions/
