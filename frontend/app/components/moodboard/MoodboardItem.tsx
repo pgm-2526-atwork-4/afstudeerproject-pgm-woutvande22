@@ -15,6 +15,8 @@ export interface MoodboardItemData {
   baseHeight?: number;
   /** Border radius in px (default 0) */
   borderRadius?: number;
+  /** Whether the item is locked (cannot be moved/resized on canvas) */
+  locked?: boolean;
   /** Image-item–only field: real image URL */
   imageUrl?: string;
   /** Text-item–only fields */
@@ -60,6 +62,9 @@ export function MoodboardItem({
       e.stopPropagation();
       onSelect(item.id);
 
+      // Don't allow dragging locked items
+      if (item.locked) return;
+
       const target = e.target as HTMLElement;
       if (target.dataset.resize) return;
 
@@ -86,13 +91,15 @@ export function MoodboardItem({
       window.addEventListener("pointermove", handlePointerMove);
       window.addEventListener("pointerup", handlePointerUp);
     },
-    [item.id, item.x, item.y, zoom, onSelect, onMove]
+    [item.id, item.x, item.y, item.locked, zoom, onSelect, onMove]
   );
 
   const handleResizePointerDown = useCallback(
     (e: React.PointerEvent) => {
       e.stopPropagation();
       onSelect(item.id);
+
+      if (item.locked) return;
 
       resizeStartRef.current = {
         startX: e.clientX,
@@ -118,7 +125,7 @@ export function MoodboardItem({
       window.addEventListener("pointermove", handlePointerMove);
       window.addEventListener("pointerup", handlePointerUp);
     },
-    [item.id, item.scale, baseW, zoom, onSelect, onScale]
+    [item.id, item.scale, item.locked, baseW, zoom, onSelect, onScale]
   );
 
   const isText = item.type === "text";
@@ -143,7 +150,7 @@ export function MoodboardItem({
         width: w,
         height: isText ? "auto" : h,
         minHeight: isText ? 30 * item.scale : undefined,
-        cursor: editing ? "text" : "grab",
+        cursor: item.locked ? "default" : editing ? "text" : "grab",
         userSelect: editing ? "auto" : "none",
         touchAction: "none",
       }}
@@ -220,7 +227,7 @@ export function MoodboardItem({
         </div>
       )}
 
-      {isSelected && !editing && (
+      {isSelected && !editing && !item.locked && (
         <div
           data-resize="true"
           onPointerDown={handleResizePointerDown}

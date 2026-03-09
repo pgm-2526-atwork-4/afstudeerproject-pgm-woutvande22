@@ -6,6 +6,8 @@ import {
   FlipToBackOutlined,
   ImageOutlined,
   DragIndicatorOutlined,
+  LockOutlined,
+  LockOpenOutlined,
 } from "@mui/icons-material";
 import { MoodboardItemData } from "./MoodboardItem";
 import { Tag } from "@/app/lib/tags";
@@ -239,6 +241,26 @@ export function MoodboardToolbar({
                 Send backward
               </button>
             </div>
+          </section>
+
+          {/* ─── Lock ─── */}
+          <section className="px-4 py-3 border-b border-gray-100">
+            <button
+              type="button"
+              onClick={() => onUpdateItem(selectedItem.id, { locked: !selectedItem.locked })}
+              className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded transition-colors cursor-pointer ${
+                selectedItem.locked
+                  ? "text-amber-600 bg-amber-50 hover:bg-amber-100"
+                  : "text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              {selectedItem.locked ? (
+                <LockOutlined sx={{ fontSize: 14 }} />
+              ) : (
+                <LockOpenOutlined sx={{ fontSize: 14 }} />
+              )}
+              {selectedItem.locked ? "Locked" : "Lock item"}
+            </button>
           </section>
 
           {/* ─── Remove ─── */}
