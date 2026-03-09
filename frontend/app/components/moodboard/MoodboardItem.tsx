@@ -160,7 +160,7 @@ export function MoodboardItem({
         <div
           className="w-full h-full rounded flex items-start justify-start"
           style={{
-            outline: isSelected ? "2px solid #38bdf8" : "none",
+            outline: isSelected ? `2px solid ${item.locked ? "#ef4444" : "#38bdf8"}` : "none",
             outlineOffset: 2,
             padding: 4 * item.scale,
           }}
@@ -208,7 +208,7 @@ export function MoodboardItem({
           style={{
             backgroundColor: item.color,
             borderRadius: item.borderRadius ?? 0,
-            outline: isSelected ? "2px solid #38bdf8" : "none",
+            outline: isSelected ? `2px solid ${item.locked ? "#ef4444" : "#38bdf8"}` : "none",
             outlineOffset: 2,
           }}
         >
