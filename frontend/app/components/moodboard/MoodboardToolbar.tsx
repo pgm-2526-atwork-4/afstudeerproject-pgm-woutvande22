@@ -5,37 +5,97 @@ import {
   FlipToFrontOutlined,
   FlipToBackOutlined,
   ImageOutlined,
+  DragIndicatorOutlined,
 } from "@mui/icons-material";
 import { MoodboardItemData } from "./MoodboardItem";
 import { Tag } from "@/app/lib/tags";
+import { SortableList } from "@/app/components/dnd/SortableList";
+import { SortableItem } from "@/app/components/dnd/SortableItem";
 
 interface MoodboardToolbarProps {
+  items: MoodboardItemData[];
   selectedItem: MoodboardItemData | null;
   tags: Tag[];
+  onSelect: (id: string) => void;
   onMove: (id: string, x: number, y: number) => void;
   onScale: (id: string, scale: number) => void;
   onRemove: (id: string) => void;
+  onReorderLayers: (reorderedItems: MoodboardItemData[]) => void;
   onBringForward?: (id: string) => void;
   onSendBackward?: (id: string) => void;
 }
 
 export function MoodboardToolbar({
+  items,
   selectedItem,
   tags,
+  onSelect,
   onMove,
   onScale,
   onRemove,
+  onReorderLayers,
   onBringForward,
   onSendBackward,
 }: MoodboardToolbarProps) {
+  // Sort layers by zIndex descending (top layer first)
+  const sortedLayers = [...items].sort(
+    (a, b) => (b.zIndex ?? 0) - (a.zIndex ?? 0)
+  );
+
   return (
     <aside className="w-64 border-l border-gray-200 bg-white flex flex-col shrink-0 overflow-y-auto">
       {!selectedItem ? (
-        <div className="flex-1 flex items-center justify-center p-4">
-          <p className="text-xs text-gray-400 text-center">
-            Select an item on the canvas to see its properties
-          </p>
-        </div>
+        /* ─── Layer List ─── */
+        <section className="flex flex-col flex-1">
+          <header className="px-4 pt-4 pb-2">
+            <h2 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">
+              Layers
+            </h2>
+          </header>
+          <div className="flex-1 px-2 pb-2">
+            <SortableList
+              items={sortedLayers}
+              onReorder={(reordered) => {
+                // Assign zIndex based on new position (top of list = highest z)
+                const updated = reordered.map((item, idx) => ({
+                  ...item,
+                  zIndex: reordered.length - 1 - idx,
+                }));
+                onReorderLayers(updated);
+              }}
+              renderItem={(item) => (
+                <SortableItem key={item.id} id={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelect(item.id)}
+                    className="flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-gray-50 transition-colors text-left"
+                  >
+                    <DragIndicatorOutlined
+                      sx={{ fontSize: 14 }}
+                      className="text-gray-300 shrink-0"
+                    />
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.label}
+                        className="w-8 h-8 object-cover rounded shrink-0"
+                        draggable={false}
+                      />
+                    ) : (
+                      <div
+                        className="w-8 h-8 rounded shrink-0"
+                        style={{ backgroundColor: item.color }}
+                      />
+                    )}
+                    <span className="text-xs text-gray-700 truncate">
+                      {item.label || "Untitled"}
+                    </span>
+                  </button>
+                </SortableItem>
+              )}
+            />
+          </div>
+        </section>
       ) : (
         <>
           {/* ─── Item Info ─── */}

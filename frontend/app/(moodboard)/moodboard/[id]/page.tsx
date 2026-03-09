@@ -156,6 +156,16 @@ export default function MoodboardPage() {
     });
   }, []);
 
+  const handleReorderLayers = useCallback((reordered: MoodboardItemData[]) => {
+    setItems((prev) => {
+      const zMap = new Map(reordered.map((item) => [item.id, item.zIndex]));
+      return prev.map((item) => ({
+        ...item,
+        zIndex: zMap.get(item.id) ?? item.zIndex,
+      }));
+    });
+  }, []);
+
   const handleZoomIn = useCallback(() => {
     setZoom((z) => Math.min(z + 0.1, 2));
   }, []);
@@ -217,11 +227,14 @@ export default function MoodboardPage() {
         />
 
         <MoodboardToolbar
+          items={items}
           selectedItem={selectedItem}
           tags={selectedTags}
+          onSelect={setSelectedId}
           onMove={handleMove}
           onScale={handleScale}
           onRemove={handleRemove}
+          onReorderLayers={handleReorderLayers}
           onBringForward={handleBringForward}
           onSendBackward={handleSendBackward}
         />
