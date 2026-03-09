@@ -5,7 +5,6 @@ import {
   FlipToFrontOutlined,
   FlipToBackOutlined,
   ImageOutlined,
-  TextFieldsOutlined,
 } from "@mui/icons-material";
 import { MoodboardItemData } from "./MoodboardItem";
 import { Tag } from "@/app/lib/tags";
@@ -16,7 +15,6 @@ interface MoodboardToolbarProps {
   onMove: (id: string, x: number, y: number) => void;
   onScale: (id: string, scale: number) => void;
   onRemove: (id: string) => void;
-  onUpdateItem?: (id: string, updates: Partial<MoodboardItemData>) => void;
   onBringForward?: (id: string) => void;
   onSendBackward?: (id: string) => void;
 }
@@ -27,12 +25,9 @@ export function MoodboardToolbar({
   onMove,
   onScale,
   onRemove,
-  onUpdateItem,
   onBringForward,
   onSendBackward,
 }: MoodboardToolbarProps) {
-  const isText = selectedItem?.type === "text";
-
   return (
     <aside className="w-64 border-l border-gray-200 bg-white flex flex-col shrink-0 overflow-y-auto">
       {!selectedItem ? (
@@ -46,23 +41,19 @@ export function MoodboardToolbar({
           {/* ─── Item Info ─── */}
           <section className="px-4 pt-4 pb-3 border-b border-gray-100">
             <div className="flex items-center gap-2 mb-2">
-              {isText ? (
-                <TextFieldsOutlined sx={{ fontSize: 16 }} className="text-gray-400" />
-              ) : (
-                <ImageOutlined sx={{ fontSize: 16 }} className="text-gray-400" />
-              )}
+              <ImageOutlined sx={{ fontSize: 16 }} className="text-gray-400" />
               <h2 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-                {isText ? "Text" : "Image"}
+                Image
               </h2>
             </div>
 
-            {!isText && selectedItem.label && (
+            {selectedItem.label && (
               <p className="text-sm text-gray-900 font-medium truncate" title={selectedItem.label}>
                 {selectedItem.label}
               </p>
             )}
 
-            {!isText && tags.length > 0 && (
+            {tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {tags.map((tag) => (
                   <span
@@ -83,7 +74,7 @@ export function MoodboardToolbar({
               </div>
             )}
 
-            {!isText && tags.length === 0 && (
+            {tags.length === 0 && (
               <p className="text-[10px] text-gray-400 mt-2">No tags</p>
             )}
           </section>
@@ -141,47 +132,6 @@ export function MoodboardToolbar({
               <span className="text-xs text-gray-400 shrink-0">%</span>
             </label>
           </section>
-
-          {/* ─── Text Properties ─── */}
-          {isText && (
-            <section className="px-4 py-3 border-b border-gray-100">
-              <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                Text
-              </h3>
-              <div className="flex flex-col gap-2">
-                <label className="flex flex-col gap-1">
-                  <span className="text-[10px] text-gray-500">Font size</span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="number"
-                      value={selectedItem.fontSize ?? 16}
-                      onChange={(e) => {
-                        const size = Math.max(8, Math.min(200, Number(e.target.value) || 16));
-                        onUpdateItem?.(selectedItem.id, { fontSize: size });
-                      }}
-                      className="w-full px-2 py-1 border border-gray-200 rounded text-xs text-gray-700 tabular-nums"
-                      min={8}
-                      max={200}
-                      step={1}
-                    />
-                    <span className="text-xs text-gray-400 shrink-0">px</span>
-                  </div>
-                </label>
-
-                <label className="flex items-center justify-between">
-                  <span className="text-[10px] text-gray-500">Color</span>
-                  <input
-                    type="color"
-                    value={selectedItem.textColor ?? "#000000"}
-                    onChange={(e) => {
-                      onUpdateItem?.(selectedItem.id, { textColor: e.target.value });
-                    }}
-                    className="w-6 h-6 rounded border border-gray-200 cursor-pointer p-0 appearance-none [&::-webkit-color-swatch-wrapper]:p-0.5 [&::-webkit-color-swatch]:rounded"
-                  />
-                </label>
-              </div>
-            </section>
-          )}
 
           {/* ─── Layer Order ─── */}
           <section className="px-4 py-3 border-b border-gray-100">

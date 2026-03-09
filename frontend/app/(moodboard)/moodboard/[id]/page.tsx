@@ -98,42 +98,6 @@ export default function MoodboardPage() {
     setSelectedId(null);
   }, []);
 
-  const handleAddText = useCallback(() => {
-    const id = `text-${Date.now()}`;
-    setItems((prev) => {
-      const maxZ = prev.length > 0 ? Math.max(...prev.map((i) => i.zIndex ?? 0)) : 0;
-      const newItem: MoodboardItemData = {
-        id,
-        type: "text",
-        label: "",
-        color: "transparent",
-        x: 200,
-        y: 200,
-        scale: 1,
-        text: "Type here…",
-        fontSize: 24,
-        textColor: "#000000",
-        baseWidth: 200,
-        baseHeight: 40,
-        zIndex: maxZ + 1,
-      };
-      return [...prev, newItem];
-    });
-    setSelectedId(id);
-  }, []);
-
-  const handleTextChange = useCallback((id: string, text: string) => {
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, text } : item))
-    );
-  }, []);
-
-  const handleUpdateItem = useCallback((id: string, updates: Partial<MoodboardItemData>) => {
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
-    );
-  }, []);
-
   const handleBringForward = useCallback((id: string) => {
     setItems((prev) => {
       const maxZ = Math.max(...prev.map((i) => i.zIndex ?? 0));
@@ -182,7 +146,7 @@ export default function MoodboardPage() {
   }
 
   const selectedItem = items.find((item) => item.id === selectedId) ?? null;
-  const selectedTags = selectedItem && selectedItem.type === "image"
+  const selectedTags = selectedItem
     ? photoTags[selectedItem.id] ?? []
     : [];
 
@@ -197,7 +161,6 @@ export default function MoodboardPage() {
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onBgColorChange={setBgColor}
-        onAddText={handleAddText}
         onExport={handleExport}
       />
 
@@ -211,7 +174,6 @@ export default function MoodboardPage() {
           onMove={handleMove}
           onScale={handleScale}
           onZoomChange={setZoom}
-          onTextChange={handleTextChange}
         />
 
         <MoodboardToolbar
@@ -220,7 +182,6 @@ export default function MoodboardPage() {
           onMove={handleMove}
           onScale={handleScale}
           onRemove={handleRemove}
-          onUpdateItem={handleUpdateItem}
           onBringForward={handleBringForward}
           onSendBackward={handleSendBackward}
         />

@@ -5,7 +5,6 @@ import {
   ZoomInOutlined,
   ZoomOutOutlined,
   FileDownloadOutlined,
-  TextFieldsOutlined,
 } from "@mui/icons-material";
 import { BackButton } from "@/app/components/ui/BackButton";
 
@@ -18,7 +17,6 @@ interface MoodboardHeaderProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onBgColorChange: (color: string) => void;
-  onAddText: () => void;
   onExport: () => void;
 }
 
@@ -31,7 +29,6 @@ export function MoodboardHeader({
   onZoomIn,
   onZoomOut,
   onBgColorChange,
-  onAddText,
   onExport,
 }: MoodboardHeaderProps) {
   const [hexInput, setHexInput] = useState(bgColor.toUpperCase());
@@ -120,15 +117,6 @@ export function MoodboardHeader({
         </label>
 
         <div className="w-px h-5 bg-gray-200 mx-1" />
-
-        <button
-          type="button"
-          onClick={onAddText}
-          className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-200 text-gray-600 hover:bg-gray-100 text-xs font-medium rounded-lg transition-colors cursor-pointer"
-        >
-          <TextFieldsOutlined sx={{ fontSize: 16 }} />
-          Add Text
-        </button>
 
         <button
           type="button"
