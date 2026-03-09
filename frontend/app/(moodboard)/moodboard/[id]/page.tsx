@@ -7,6 +7,7 @@ import { MoodboardCanvas } from "@/app/components/moodboard/MoodboardCanvas";
 import { MoodboardToolbar } from "@/app/components/moodboard/MoodboardToolbar";
 import { MoodboardItemData } from "@/app/components/moodboard/MoodboardItem";
 import { fetchCollection, fetchCollectionPhotos } from "@/app/lib/collections";
+import { fetchBatchPhotoTags, Tag } from "@/app/lib/tags";
 
 export default function MoodboardPage() {
   const params = useParams<{ id: string }>();
@@ -19,6 +20,7 @@ export default function MoodboardPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [bgColor, setBgColor] = useState("#ffffff");
+  const [photoTags, setPhotoTags] = useState<Record<string, Tag[]>>({});
 
   useEffect(() => {
     const load = async () => {
@@ -62,6 +64,13 @@ export default function MoodboardPage() {
         );
 
         setItems(moodboardItems);
+
+        // Fetch tags for all photos
+        const photoIds = photos.map((p) => p.id);
+        if (photoIds.length > 0) {
+          const tagsMap = await fetchBatchPhotoTags(token, photoIds);
+          setPhotoTags(tagsMap);
+        }
       } catch {
         setNotFound(true);
       } finally {
@@ -173,6 +182,9 @@ export default function MoodboardPage() {
   }
 
   const selectedItem = items.find((item) => item.id === selectedId) ?? null;
+  const selectedTags = selectedItem && selectedItem.type === "image"
+    ? photoTags[selectedItem.id] ?? []
+    : [];
 
   return (
     <>
@@ -189,26 +201,30 @@ export default function MoodboardPage() {
         onExport={handleExport}
       />
 
-      <MoodboardCanvas
-        items={items}
-        selectedId={selectedId}
-        zoom={zoom}
-        bgColor={bgColor}
-        onSelect={setSelectedId}
-        onMove={handleMove}
-        onScale={handleScale}
-        onZoomChange={setZoom}
-        onTextChange={handleTextChange}
-      />
+      <div className="flex flex-1 overflow-hidden">
+        <MoodboardCanvas
+          items={items}
+          selectedId={selectedId}
+          zoom={zoom}
+          bgColor={bgColor}
+          onSelect={setSelectedId}
+          onMove={handleMove}
+          onScale={handleScale}
+          onZoomChange={setZoom}
+          onTextChange={handleTextChange}
+        />
 
-      <MoodboardToolbar
-        selectedItem={selectedItem}
-        onScale={handleScale}
-        onRemove={handleRemove}
-        onUpdateItem={handleUpdateItem}
-        onBringForward={handleBringForward}
-        onSendBackward={handleSendBackward}
-      />
+        <MoodboardToolbar
+          selectedItem={selectedItem}
+          tags={selectedTags}
+          onMove={handleMove}
+          onScale={handleScale}
+          onRemove={handleRemove}
+          onUpdateItem={handleUpdateItem}
+          onBringForward={handleBringForward}
+          onSendBackward={handleSendBackward}
+        />
+      </div>
     </>
   );
 }

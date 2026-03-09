@@ -4,11 +4,16 @@ import {
   DeleteOutlined,
   FlipToFrontOutlined,
   FlipToBackOutlined,
+  ImageOutlined,
+  TextFieldsOutlined,
 } from "@mui/icons-material";
 import { MoodboardItemData } from "./MoodboardItem";
+import { Tag } from "@/app/lib/tags";
 
 interface MoodboardToolbarProps {
   selectedItem: MoodboardItemData | null;
+  tags: Tag[];
+  onMove: (id: string, x: number, y: number) => void;
   onScale: (id: string, scale: number) => void;
   onRemove: (id: string) => void;
   onUpdateItem?: (id: string, updates: Partial<MoodboardItemData>) => void;
@@ -18,110 +23,204 @@ interface MoodboardToolbarProps {
 
 export function MoodboardToolbar({
   selectedItem,
+  tags,
+  onMove,
   onScale,
   onRemove,
   onUpdateItem,
   onBringForward,
   onSendBackward,
 }: MoodboardToolbarProps) {
-  if (!selectedItem) return null;
-
-  const isText = selectedItem.type === "text";
+  const isText = selectedItem?.type === "text";
 
   return (
-    <footer className="flex items-center justify-between px-4 py-2 border-t border-gray-200 bg-white">
-      <div className="flex items-center gap-4">
-        <label className="flex items-center gap-1.5 text-xs text-gray-500">
-          Scale:
-          <input
-            type="number"
-            value={Math.round(selectedItem.scale * 100)}
-            onChange={(e) => {
-              const pct = Number(e.target.value) || 20;
-              onScale(selectedItem.id, Math.max(0.2, pct / 100));
-            }}
-            className="w-14 px-1.5 py-1 border border-gray-200 rounded text-xs text-gray-700 tabular-nums"
-            min={20}
-            step={5}
-          />
-          <span className="text-xs text-gray-400">%</span>
-        </label>
+    <aside className="w-64 border-l border-gray-200 bg-white flex flex-col shrink-0 overflow-y-auto">
+      {!selectedItem ? (
+        <div className="flex-1 flex items-center justify-center p-4">
+          <p className="text-xs text-gray-400 text-center">
+            Select an item on the canvas to see its properties
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* ─── Item Info ─── */}
+          <section className="px-4 pt-4 pb-3 border-b border-gray-100">
+            <div className="flex items-center gap-2 mb-2">
+              {isText ? (
+                <TextFieldsOutlined sx={{ fontSize: 16 }} className="text-gray-400" />
+              ) : (
+                <ImageOutlined sx={{ fontSize: 16 }} className="text-gray-400" />
+              )}
+              <h2 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                {isText ? "Text" : "Image"}
+              </h2>
+            </div>
 
-        <span className="text-xs text-gray-400">
-          X: {Math.round(selectedItem.x)}
-        </span>
-        <span className="text-xs text-gray-400">
-          Y: {Math.round(selectedItem.y)}
-        </span>
+            {!isText && selectedItem.label && (
+              <p className="text-sm text-gray-900 font-medium truncate" title={selectedItem.label}>
+                {selectedItem.label}
+              </p>
+            )}
 
-        {isText && (
-          <>
-            <div className="w-px h-4 bg-gray-200" />
+            {!isText && tags.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                {tags.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium"
+                    style={{
+                      backgroundColor: `${tag.color_hex}20`,
+                      color: tag.color_hex,
+                    }}
+                  >
+                    <span
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{ backgroundColor: tag.color_hex }}
+                    />
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
+            )}
 
-            <label className="flex items-center gap-1.5 text-xs text-gray-500">
-              Size:
+            {!isText && tags.length === 0 && (
+              <p className="text-[10px] text-gray-400 mt-2">No tags</p>
+            )}
+          </section>
+
+          {/* ─── Position ─── */}
+          <section className="px-4 py-3 border-b border-gray-100">
+            <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+              Position
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="flex flex-col gap-1">
+                <span className="text-[10px] text-gray-500">X</span>
+                <input
+                  type="number"
+                  value={Math.round(selectedItem.x)}
+                  onChange={(e) => {
+                    const x = Number(e.target.value) || 0;
+                    onMove(selectedItem.id, x, selectedItem.y);
+                  }}
+                  className="w-full px-2 py-1 border border-gray-200 rounded text-xs text-gray-700 tabular-nums"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-[10px] text-gray-500">Y</span>
+                <input
+                  type="number"
+                  value={Math.round(selectedItem.y)}
+                  onChange={(e) => {
+                    const y = Number(e.target.value) || 0;
+                    onMove(selectedItem.id, selectedItem.x, y);
+                  }}
+                  className="w-full px-2 py-1 border border-gray-200 rounded text-xs text-gray-700 tabular-nums"
+                />
+              </label>
+            </div>
+          </section>
+
+          {/* ─── Scale ─── */}
+          <section className="px-4 py-3 border-b border-gray-100">
+            <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+              Scale
+            </h3>
+            <label className="flex items-center gap-2">
               <input
                 type="number"
-                value={selectedItem.fontSize ?? 16}
+                value={Math.round(selectedItem.scale * 100)}
                 onChange={(e) => {
-                  const size = Math.max(8, Math.min(200, Number(e.target.value) || 16));
-                  onUpdateItem?.(selectedItem.id, { fontSize: size });
+                  const pct = Number(e.target.value) || 20;
+                  onScale(selectedItem.id, Math.max(0.2, pct / 100));
                 }}
-                className="w-14 px-1.5 py-1 border border-gray-200 rounded text-xs text-gray-700 tabular-nums"
-                min={8}
-                max={200}
-                step={1}
+                className="w-full px-2 py-1 border border-gray-200 rounded text-xs text-gray-700 tabular-nums"
+                min={20}
+                step={5}
               />
-              <span className="text-xs text-gray-400">px</span>
+              <span className="text-xs text-gray-400 shrink-0">%</span>
             </label>
+          </section>
 
-            <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
-              Color:
-              <input
-                type="color"
-                value={selectedItem.textColor ?? "#000000"}
-                onChange={(e) => {
-                  onUpdateItem?.(selectedItem.id, { textColor: e.target.value });
-                }}
-                className="w-6 h-6 rounded border border-gray-200 cursor-pointer p-0 appearance-none [&::-webkit-color-swatch-wrapper]:p-0.5 [&::-webkit-color-swatch]:rounded"
-              />
-            </label>
-          </>
-        )}
-      </div>
+          {/* ─── Text Properties ─── */}
+          {isText && (
+            <section className="px-4 py-3 border-b border-gray-100">
+              <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                Text
+              </h3>
+              <div className="flex flex-col gap-2">
+                <label className="flex flex-col gap-1">
+                  <span className="text-[10px] text-gray-500">Font size</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={selectedItem.fontSize ?? 16}
+                      onChange={(e) => {
+                        const size = Math.max(8, Math.min(200, Number(e.target.value) || 16));
+                        onUpdateItem?.(selectedItem.id, { fontSize: size });
+                      }}
+                      className="w-full px-2 py-1 border border-gray-200 rounded text-xs text-gray-700 tabular-nums"
+                      min={8}
+                      max={200}
+                      step={1}
+                    />
+                    <span className="text-xs text-gray-400 shrink-0">px</span>
+                  </div>
+                </label>
 
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => onBringForward?.(selectedItem.id)}
-          className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors cursor-pointer"
-          title="Bring Forward"
-        >
-          <FlipToFrontOutlined sx={{ fontSize: 16 }} />
-          Forward
-        </button>
+                <label className="flex items-center justify-between">
+                  <span className="text-[10px] text-gray-500">Color</span>
+                  <input
+                    type="color"
+                    value={selectedItem.textColor ?? "#000000"}
+                    onChange={(e) => {
+                      onUpdateItem?.(selectedItem.id, { textColor: e.target.value });
+                    }}
+                    className="w-6 h-6 rounded border border-gray-200 cursor-pointer p-0 appearance-none [&::-webkit-color-swatch-wrapper]:p-0.5 [&::-webkit-color-swatch]:rounded"
+                  />
+                </label>
+              </div>
+            </section>
+          )}
 
-        <button
-          type="button"
-          onClick={() => onSendBackward?.(selectedItem.id)}
-          className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 rounded transition-colors cursor-pointer"
-          title="Send Backward"
-        >
-          <FlipToBackOutlined sx={{ fontSize: 16 }} />
-          Backward
-        </button>
+          {/* ─── Layer Order ─── */}
+          <section className="px-4 py-3 border-b border-gray-100">
+            <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+              Layer
+            </h3>
+            <div className="flex flex-col gap-1">
+              <button
+                type="button"
+                onClick={() => onBringForward?.(selectedItem.id)}
+                className="flex items-center gap-2 w-full px-2 py-1.5 text-xs text-gray-600 hover:bg-gray-50 rounded transition-colors cursor-pointer"
+              >
+                <FlipToFrontOutlined sx={{ fontSize: 14 }} />
+                Bring forward
+              </button>
+              <button
+                type="button"
+                onClick={() => onSendBackward?.(selectedItem.id)}
+                className="flex items-center gap-2 w-full px-2 py-1.5 text-xs text-gray-600 hover:bg-gray-50 rounded transition-colors cursor-pointer"
+              >
+                <FlipToBackOutlined sx={{ fontSize: 14 }} />
+                Send backward
+              </button>
+            </div>
+          </section>
 
-        <div className="w-px h-4 bg-gray-200" />
-
-        <button
-          type="button"
-          onClick={() => onRemove(selectedItem.id)}
-          className="flex items-center gap-1 text-xs text-red-500 hover:text-red-600 transition-colors cursor-pointer"
-        >
-          <DeleteOutlined sx={{ fontSize: 16 }} />
-          Remove
-        </button>
-      </div>
-    </footer>
+          {/* ─── Remove ─── */}
+          <section className="px-4 py-3 mt-auto">
+            <button
+              type="button"
+              onClick={() => onRemove(selectedItem.id)}
+              className="flex items-center gap-2 w-full px-2 py-1.5 text-xs text-red-500 hover:bg-red-50 rounded transition-colors cursor-pointer"
+            >
+              <DeleteOutlined sx={{ fontSize: 14 }} />
+              Remove from moodboard
+            </button>
+          </section>
+        </>
+      )}
+    </aside>
   );
 }
