@@ -158,7 +158,7 @@ export function MoodboardToolbar({
           </section>
 
           {/* ─── Position ─── */}
-          <section className="px-4 py-3 border-b border-gray-100">
+          <section className={`px-4 py-3 border-b border-gray-100 ${selectedItem.locked ? "opacity-40 pointer-events-none" : ""}`}>
             <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
               Position
             </h3>
@@ -191,7 +191,7 @@ export function MoodboardToolbar({
           </section>
 
           {/* ─── Scale ─── */}
-          <section className="px-4 py-3 border-b border-gray-100">
+          <section className={`px-4 py-3 border-b border-gray-100 ${selectedItem.locked ? "opacity-40 pointer-events-none" : ""}`}>
             <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
               Scale
             </h3>
@@ -212,7 +212,7 @@ export function MoodboardToolbar({
           </section>
 
           {/* ─── Border Radius ─── */}
-          <section className="px-4 py-3 border-b border-gray-100">
+          <section className={`px-4 py-3 border-b border-gray-100 ${selectedItem.locked ? "opacity-40 pointer-events-none" : ""}`}>
             <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
               Border Radius
             </h3>
@@ -233,7 +233,7 @@ export function MoodboardToolbar({
           </section>
 
           {/* ─── Layer Order ─── */}
-          <section className="px-4 py-3 border-b border-gray-100">
+          <section className={`px-4 py-3 border-b border-gray-100 ${selectedItem.locked ? "opacity-40 pointer-events-none" : ""}`}>
             <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
               Layer
             </h3>
@@ -258,7 +258,7 @@ export function MoodboardToolbar({
           </section>
 
           {/* ─── Visibility ─── */}
-          <section className="px-4 py-3 border-b border-gray-100">
+          <section className={`px-4 py-3 border-b border-gray-100 ${selectedItem.locked ? "opacity-40 pointer-events-none" : ""}`}>
             <button
               type="button"
               onClick={() => onUpdateItem(selectedItem.id, { hidden: !selectedItem.hidden })}
@@ -298,7 +298,7 @@ export function MoodboardToolbar({
           </section>
 
           {/* ─── Remove ─── */}
-          <section className="px-4 py-3 mt-auto">
+          <section className={`px-4 py-3 mt-auto ${selectedItem.locked ? "opacity-40 pointer-events-none" : ""}`}>
             <button
               type="button"
               onClick={() => onRemove(selectedItem.id)}
