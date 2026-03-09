@@ -17,6 +17,8 @@ export interface MoodboardItemData {
   borderRadius?: number;
   /** Whether the item is locked (cannot be moved/resized on canvas) */
   locked?: boolean;
+  /** Whether the item is hidden on the canvas */
+  hidden?: boolean;
   /** Image-item–only field: real image URL */
   imageUrl?: string;
   /** Text-item–only fields */
@@ -153,6 +155,7 @@ export function MoodboardItem({
         cursor: item.locked ? "default" : editing ? "text" : "grab",
         userSelect: editing ? "auto" : "none",
         touchAction: "none",
+        display: item.hidden ? "none" : undefined,
       }}
     >
       {isText ? (

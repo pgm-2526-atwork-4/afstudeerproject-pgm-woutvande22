@@ -8,6 +8,8 @@ import {
   DragIndicatorOutlined,
   LockOutlined,
   LockOpenOutlined,
+  VisibilityOutlined,
+  VisibilityOffOutlined,
 } from "@mui/icons-material";
 import { MoodboardItemData } from "./MoodboardItem";
 import { Tag } from "@/app/lib/tags";
@@ -72,7 +74,7 @@ export function MoodboardToolbar({
                   <button
                     type="button"
                     onClick={() => onSelect(item.id)}
-                    className="flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-gray-50 transition-colors text-left"
+                    className={`flex items-center gap-2 w-full px-2 py-1.5 rounded hover:bg-gray-50 transition-colors text-left ${item.hidden ? "opacity-40" : ""}`}
                   >
                     <DragIndicatorOutlined
                       sx={{ fontSize: 14 }}
@@ -94,6 +96,12 @@ export function MoodboardToolbar({
                     <span className="text-xs text-gray-700 truncate flex-1">
                       {item.label || "Untitled"}
                     </span>
+                    {item.hidden && (
+                      <VisibilityOffOutlined
+                        sx={{ fontSize: 12 }}
+                        className="text-gray-400 shrink-0"
+                      />
+                    )}
                     {item.locked && (
                       <LockOutlined
                         sx={{ fontSize: 12 }}
@@ -247,6 +255,26 @@ export function MoodboardToolbar({
                 Send backward
               </button>
             </div>
+          </section>
+
+          {/* ─── Visibility ─── */}
+          <section className="px-4 py-3 border-b border-gray-100">
+            <button
+              type="button"
+              onClick={() => onUpdateItem(selectedItem.id, { hidden: !selectedItem.hidden })}
+              className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded transition-colors cursor-pointer ${
+                selectedItem.hidden
+                  ? "text-gray-500 bg-gray-100 hover:bg-gray-200"
+                  : "text-gray-600 hover:bg-gray-50"
+              }`}
+            >
+              {selectedItem.hidden ? (
+                <VisibilityOffOutlined sx={{ fontSize: 14 }} />
+              ) : (
+                <VisibilityOutlined sx={{ fontSize: 14 }} />
+              )}
+              {selectedItem.hidden ? "Hidden" : "Hide item"}
+            </button>
           </section>
 
           {/* ─── Lock ─── */}
