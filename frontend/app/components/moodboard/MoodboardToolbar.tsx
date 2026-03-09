@@ -20,6 +20,7 @@ interface MoodboardToolbarProps {
   onMove: (id: string, x: number, y: number) => void;
   onScale: (id: string, scale: number) => void;
   onRemove: (id: string) => void;
+  onUpdateItem: (id: string, updates: Partial<MoodboardItemData>) => void;
   onReorderLayers: (reorderedItems: MoodboardItemData[]) => void;
   onBringForward?: (id: string) => void;
   onSendBackward?: (id: string) => void;
@@ -33,6 +34,7 @@ export function MoodboardToolbar({
   onMove,
   onScale,
   onRemove,
+  onUpdateItem,
   onReorderLayers,
   onBringForward,
   onSendBackward,
@@ -190,6 +192,27 @@ export function MoodboardToolbar({
                 step={5}
               />
               <span className="text-xs text-gray-400 shrink-0">%</span>
+            </label>
+          </section>
+
+          {/* ─── Border Radius ─── */}
+          <section className="px-4 py-3 border-b border-gray-100">
+            <h3 className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+              Border Radius
+            </h3>
+            <label className="flex items-center gap-2">
+              <input
+                type="number"
+                value={selectedItem.borderRadius ?? 0}
+                onChange={(e) => {
+                  const r = Math.max(0, Number(e.target.value) || 0);
+                  onUpdateItem(selectedItem.id, { borderRadius: r });
+                }}
+                className="w-full px-2 py-1 border border-gray-200 rounded text-xs text-gray-700 tabular-nums"
+                min={0}
+                step={1}
+              />
+              <span className="text-xs text-gray-400 shrink-0">px</span>
             </label>
           </section>
 

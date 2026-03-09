@@ -166,6 +166,12 @@ export default function MoodboardPage() {
     });
   }, []);
 
+  const handleUpdateItem = useCallback((id: string, updates: Partial<MoodboardItemData>) => {
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
+    );
+  }, []);
+
   const handleZoomIn = useCallback(() => {
     setZoom((z) => Math.min(z + 0.1, 2));
   }, []);
@@ -234,6 +240,7 @@ export default function MoodboardPage() {
           onMove={handleMove}
           onScale={handleScale}
           onRemove={handleRemove}
+          onUpdateItem={handleUpdateItem}
           onReorderLayers={handleReorderLayers}
           onBringForward={handleBringForward}
           onSendBackward={handleSendBackward}

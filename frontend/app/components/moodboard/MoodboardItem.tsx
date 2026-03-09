@@ -13,6 +13,8 @@ export interface MoodboardItemData {
   zIndex?: number;
   baseWidth?: number;
   baseHeight?: number;
+  /** Border radius in px (default 0) */
+  borderRadius?: number;
   /** Image-item–only field: real image URL */
   imageUrl?: string;
   /** Text-item–only fields */
@@ -195,9 +197,10 @@ export function MoodboardItem({
       ) : (
         /* ─── Image / color item ─── */
         <div
-          className="w-full h-full rounded-lg flex items-center justify-center shadow-md overflow-hidden"
+          className="w-full h-full flex items-center justify-center shadow-md overflow-hidden"
           style={{
             backgroundColor: item.color,
+            borderRadius: item.borderRadius ?? 0,
             outline: isSelected ? "2px solid #38bdf8" : "none",
             outlineOffset: 2,
           }}
