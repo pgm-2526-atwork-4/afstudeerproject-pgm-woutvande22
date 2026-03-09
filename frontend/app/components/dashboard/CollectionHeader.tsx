@@ -76,7 +76,7 @@ export const CollectionHeader = ({
             className="flex items-center gap-2 px-5 py-2.5 bg-sky-400 hover:bg-sky-500 text-white text-sm font-semibold rounded-lg transition-colors cursor-pointer"
           >
             <GridViewOutlined sx={{ fontSize: 18 }} />
-            Create Moodboard
+            Moodboard
           </Link>
         </div>
       </div>
