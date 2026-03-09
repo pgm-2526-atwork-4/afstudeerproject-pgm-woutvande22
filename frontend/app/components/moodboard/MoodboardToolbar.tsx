@@ -91,9 +91,15 @@ export function MoodboardToolbar({
                         style={{ backgroundColor: item.color }}
                       />
                     )}
-                    <span className="text-xs text-gray-700 truncate">
+                    <span className="text-xs text-gray-700 truncate flex-1">
                       {item.label || "Untitled"}
                     </span>
+                    {item.locked && (
+                      <LockOutlined
+                        sx={{ fontSize: 12 }}
+                        className="text-amber-500 shrink-0"
+                      />
+                    )}
                   </button>
                 </SortableItem>
               )}
