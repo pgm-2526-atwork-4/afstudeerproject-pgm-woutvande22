@@ -1,7 +1,32 @@
 "use client";
 
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useMemo, useRef } from "react";
 import { MoodboardItem, MoodboardItemData } from "./MoodboardItem";
+
+const DEFAULT_BASE_SIZE = 150;
+const CANVAS_PADDING = 100;
+const MIN_WIDTH = 800;
+const MIN_HEIGHT = 600;
+
+export function getCanvasSize(items: MoodboardItemData[]) {
+  if (items.length === 0) return { width: MIN_WIDTH, height: MIN_HEIGHT };
+
+  let maxRight = 0;
+  let maxBottom = 0;
+
+  for (const item of items) {
+    if (item.hidden) continue;
+    const w = (item.baseWidth ?? DEFAULT_BASE_SIZE) * item.scale;
+    const h = (item.baseHeight ?? DEFAULT_BASE_SIZE) * item.scale;
+    maxRight = Math.max(maxRight, item.x + w);
+    maxBottom = Math.max(maxBottom, item.y + h);
+  }
+
+  return {
+    width: Math.max(MIN_WIDTH, Math.ceil(maxRight + CANVAS_PADDING)),
+    height: Math.max(MIN_HEIGHT, Math.ceil(maxBottom + CANVAS_PADDING)),
+  };
+}
 
 interface MoodboardCanvasProps {
   items: MoodboardItemData[];
@@ -13,6 +38,7 @@ interface MoodboardCanvasProps {
   onScale: (id: string, scale: number) => void;
   onZoomChange: (zoom: number) => void;
   onTextChange?: (id: string, text: string) => void;
+  exportRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function MoodboardCanvas({
@@ -25,9 +51,11 @@ export function MoodboardCanvas({
   onScale,
   onZoomChange,
   onTextChange,
+  exportRef,
 }: MoodboardCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const panStartRef = useRef<{ startX: number; startY: number; scrollLeft: number; scrollTop: number } | null>(null);
+  const canvasSize = useMemo(() => getCanvasSize(items), [items]);
 
   const handleCanvasClick = useCallback(
     (e: React.PointerEvent) => {
@@ -93,11 +121,12 @@ export function MoodboardCanvas({
       onMouseDown={(e) => { if (e.button === 1) e.preventDefault(); }}
     >
       <div
+        ref={exportRef}
         style={{
           transform: `scale(${zoom})`,
           transformOrigin: "0 0",
-          width: 1920,
-          height: 1080,
+          width: canvasSize.width,
+          height: canvasSize.height,
           position: "relative",
           minWidth: "fit-content",
         }}

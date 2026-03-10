@@ -4,11 +4,15 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { MoodboardHeader } from "@/app/components/moodboard/MoodboardHeader";
 import { MoodboardCanvas } from "@/app/components/moodboard/MoodboardCanvas";
+import { getCanvasSize } from "@/app/components/moodboard/MoodboardCanvas";
 import { MoodboardToolbar } from "@/app/components/moodboard/MoodboardToolbar";
 import { MoodboardItemData } from "@/app/components/moodboard/MoodboardItem";
 import { fetchCollection, fetchCollectionPhotos } from "@/app/lib/collections";
 import { fetchBatchPhotoTags, Tag } from "@/app/lib/tags";
 import { fetchMoodboard, saveMoodboard, SaveMoodboardItem } from "@/app/lib/moodboard";
+import { ExportFormat } from "@/app/components/moodboard/ExportModal";
+import { toPng, toJpeg } from "html-to-image";
+import { jsPDF } from "jspdf";
 
 export default function MoodboardPage() {
   const params = useParams<{ id: string }>();
@@ -252,10 +256,57 @@ export default function MoodboardPage() {
     setZoom((z) => Math.max(z - 0.1, 0.25));
   }, []);
 
-  const handleExport = useCallback(() => {
-    // TODO: implement export (e.g. html2canvas or server-side render)
-    alert("Export coming soon!");
-  }, []);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = useCallback(async (format: ExportFormat) => {
+    const inner = canvasRef.current;
+    if (!inner) return;
+
+    // Clear selection so outlines/resize handles don't appear in export
+    const prevSelected = selectedId;
+    setSelectedId(null);
+    // Wait one frame for React to flush the deselection
+    await new Promise((r) => requestAnimationFrame(r));
+
+    const { width, height } = getCanvasSize(items);
+
+    setExporting(true);
+    try {
+      const options = {
+        width,
+        height,
+        style: { transform: "scale(1)", transformOrigin: "0 0" },
+        pixelRatio: 2,
+        backgroundColor: bgColor,
+      };
+
+      const filename = `${collectionTitle || "moodboard"}-export`;
+
+      if (format === "png") {
+        const dataUrl = await toPng(inner, options);
+        downloadDataUrl(dataUrl, `${filename}.png`);
+      } else if (format === "jpg") {
+        const dataUrl = await toJpeg(inner, { ...options, quality: 0.95 });
+        downloadDataUrl(dataUrl, `${filename}.jpg`);
+      } else {
+        const dataUrl = await toPng(inner, options);
+        const pdf = new jsPDF({ orientation: width >= height ? "landscape" : "portrait", unit: "px", format: [width, height] });
+        pdf.addImage(dataUrl, "PNG", 0, 0, width, height);
+        pdf.save(`${filename}.pdf`);
+      }
+    } finally {
+      setExporting(false);
+      setSelectedId(prevSelected);
+    }
+  }, [bgColor, collectionTitle, items, selectedId]);
+
+  function downloadDataUrl(dataUrl: string, filename: string) {
+    const link = document.createElement("a");
+    link.download = filename;
+    link.href = dataUrl;
+    link.click();
+  }
 
   if (loading) {
     return (
@@ -290,6 +341,7 @@ export default function MoodboardPage() {
         onZoomOut={handleZoomOut}
         onBgColorChange={setBgColor}
         onExport={handleExport}
+        exporting={exporting}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -302,6 +354,7 @@ export default function MoodboardPage() {
           onMove={handleMove}
           onScale={handleScale}
           onZoomChange={setZoom}
+          exportRef={canvasRef}
         />
 
         <MoodboardToolbar

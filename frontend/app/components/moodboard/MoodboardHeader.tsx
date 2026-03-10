@@ -7,6 +7,7 @@ import {
   FileDownloadOutlined,
 } from "@mui/icons-material";
 import { BackButton } from "@/app/components/ui/BackButton";
+import { ExportModal, ExportFormat } from "@/app/components/moodboard/ExportModal";
 
 interface MoodboardHeaderProps {
   title: string;
@@ -17,7 +18,8 @@ interface MoodboardHeaderProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onBgColorChange: (color: string) => void;
-  onExport: () => void;
+  onExport: (format: ExportFormat) => void;
+  exporting: boolean;
 }
 
 export function MoodboardHeader({
@@ -30,8 +32,10 @@ export function MoodboardHeader({
   onZoomOut,
   onBgColorChange,
   onExport,
+  exporting,
 }: MoodboardHeaderProps) {
   const [hexInput, setHexInput] = useState(bgColor.toUpperCase());
+  const [exportOpen, setExportOpen] = useState(false);
 
   useEffect(() => {
     setHexInput(bgColor.toUpperCase());
@@ -120,13 +124,23 @@ export function MoodboardHeader({
 
         <button
           type="button"
-          onClick={onExport}
+          onClick={() => setExportOpen(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-400 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer"
         >
           <FileDownloadOutlined sx={{ fontSize: 16 }} />
           Export
         </button>
       </div>
+
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        onExport={(format) => {
+          onExport(format);
+          setExportOpen(false);
+        }}
+        exporting={exporting}
+      />
     </header>
   );
 }
