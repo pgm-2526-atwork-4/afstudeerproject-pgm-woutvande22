@@ -1,12 +1,39 @@
 "use client";
 
-import React, { useCallback, useMemo, useRef } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { MoodboardItem, MoodboardItemData } from "./MoodboardItem";
 
 const DEFAULT_BASE_SIZE = 150;
 const CANVAS_PADDING = 100;
 const MIN_WIDTH = 800;
 const MIN_HEIGHT = 600;
+const EXPORT_MARGIN = 60;
+
+export function getExportBounds(items: MoodboardItemData[]) {
+  const visible = items.filter((i) => !i.hidden);
+  if (visible.length === 0) return { x: 0, y: 0, width: MIN_WIDTH, height: MIN_HEIGHT };
+
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+
+  for (const item of visible) {
+    const w = (item.baseWidth ?? DEFAULT_BASE_SIZE) * item.scale;
+    const h = (item.baseHeight ?? DEFAULT_BASE_SIZE) * item.scale;
+    minX = Math.min(minX, item.x);
+    minY = Math.min(minY, item.y);
+    maxX = Math.max(maxX, item.x + w);
+    maxY = Math.max(maxY, item.y + h);
+  }
+
+  return {
+    x: minX - EXPORT_MARGIN,
+    y: minY - EXPORT_MARGIN,
+    width: Math.ceil(maxX - minX + EXPORT_MARGIN * 2),
+    height: Math.ceil(maxY - minY + EXPORT_MARGIN * 2),
+  };
+}
 
 export function getCanvasSize(items: MoodboardItemData[]) {
   if (items.length === 0) return { width: MIN_WIDTH, height: MIN_HEIGHT };
@@ -54,30 +81,31 @@ export function MoodboardCanvas({
   exportRef,
 }: MoodboardCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const panStartRef = useRef<{ startX: number; startY: number; scrollLeft: number; scrollTop: number } | null>(null);
+  const panStartRef = useRef<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
   const canvasSize = useMemo(() => getCanvasSize(items), [items]);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
 
   const handleCanvasClick = useCallback(
     (e: React.PointerEvent) => {
       // Middle mouse button (button 1) — start panning
       if (e.button === 1) {
         e.preventDefault();
-        const el = containerRef.current;
-        if (!el) return;
 
         panStartRef.current = {
           startX: e.clientX,
           startY: e.clientY,
-          scrollLeft: el.scrollLeft,
-          scrollTop: el.scrollTop,
+          panX: panOffset.x,
+          panY: panOffset.y,
         };
 
         const handlePointerMove = (ev: PointerEvent) => {
-          if (!panStartRef.current || !containerRef.current) return;
+          if (!panStartRef.current) return;
           const dx = ev.clientX - panStartRef.current.startX;
           const dy = ev.clientY - panStartRef.current.startY;
-          containerRef.current.scrollLeft = panStartRef.current.scrollLeft - dx;
-          containerRef.current.scrollTop = panStartRef.current.scrollTop - dy;
+          setPanOffset({
+            x: panStartRef.current.panX + dx,
+            y: panStartRef.current.panY + dy,
+          });
         };
 
         const handlePointerUp = () => {
@@ -96,19 +124,39 @@ export function MoodboardCanvas({
         onSelect(null);
       }
     },
-    [onSelect]
+    [onSelect, panOffset]
   );
 
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
+        const container = containerRef.current;
+        if (!container) return;
+
         const delta = e.deltaY > 0 ? -0.05 : 0.05;
         const newZoom = Math.min(2, Math.max(0.25, zoom + delta));
-        onZoomChange(Math.round(newZoom * 100) / 100);
+        const clampedZoom = Math.round(newZoom * 100) / 100;
+
+        // Mouse position relative to the container
+        const rect = container.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        // Point on the canvas (in canvas-space) under the cursor
+        const canvasX = (mouseX - panOffset.x) / zoom;
+        const canvasY = (mouseY - panOffset.y) / zoom;
+
+        // New pan so the same canvas point stays under the cursor
+        setPanOffset({
+          x: mouseX - canvasX * clampedZoom,
+          y: mouseY - canvasY * clampedZoom,
+        });
+
+        onZoomChange(clampedZoom);
       }
     },
-    [zoom, onZoomChange]
+    [zoom, onZoomChange, panOffset]
   );
 
   return (
@@ -123,12 +171,13 @@ export function MoodboardCanvas({
       <div
         ref={exportRef}
         style={{
-          transform: `scale(${zoom})`,
+          transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
           transformOrigin: "0 0",
           width: canvasSize.width,
           height: canvasSize.height,
-          position: "relative",
-          minWidth: "fit-content",
+          position: "absolute",
+          top: 0,
+          left: 0,
         }}
       >
         {items.map((item) => (

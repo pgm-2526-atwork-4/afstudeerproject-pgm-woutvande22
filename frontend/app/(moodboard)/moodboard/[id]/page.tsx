@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useParams } from "next/navigation";
 import { MoodboardHeader } from "@/app/components/moodboard/MoodboardHeader";
 import { MoodboardCanvas } from "@/app/components/moodboard/MoodboardCanvas";
-import { getCanvasSize } from "@/app/components/moodboard/MoodboardCanvas";
+import { getExportBounds } from "@/app/components/moodboard/MoodboardCanvas";
 import { MoodboardToolbar } from "@/app/components/moodboard/MoodboardToolbar";
 import { MoodboardItemData } from "@/app/components/moodboard/MoodboardItem";
 import { fetchCollection, fetchCollectionPhotos } from "@/app/lib/collections";
@@ -269,14 +269,17 @@ export default function MoodboardPage() {
     // Wait one frame for React to flush the deselection
     await new Promise((r) => requestAnimationFrame(r));
 
-    const { width, height } = getCanvasSize(items);
+    const bounds = getExportBounds(items);
 
     setExporting(true);
     try {
       const options = {
-        width,
-        height,
-        style: { transform: "scale(1)", transformOrigin: "0 0" },
+        width: bounds.width,
+        height: bounds.height,
+        style: {
+          transform: `translate(${-bounds.x}px, ${-bounds.y}px) scale(1)`,
+          transformOrigin: "0 0",
+        },
         pixelRatio: 2,
         backgroundColor: bgColor,
       };
@@ -291,8 +294,8 @@ export default function MoodboardPage() {
         downloadDataUrl(dataUrl, `${filename}.jpg`);
       } else {
         const dataUrl = await toPng(inner, options);
-        const pdf = new jsPDF({ orientation: width >= height ? "landscape" : "portrait", unit: "px", format: [width, height] });
-        pdf.addImage(dataUrl, "PNG", 0, 0, width, height);
+        const pdf = new jsPDF({ orientation: bounds.width >= bounds.height ? "landscape" : "portrait", unit: "px", format: [bounds.width, bounds.height] });
+        pdf.addImage(dataUrl, "PNG", 0, 0, bounds.width, bounds.height);
         pdf.save(`${filename}.pdf`);
       }
     } finally {
