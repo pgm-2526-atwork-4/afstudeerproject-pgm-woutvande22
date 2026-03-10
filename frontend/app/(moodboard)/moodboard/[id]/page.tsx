@@ -82,6 +82,75 @@ export default function MoodboardPage() {
               };
             });
 
+          // Detect photos added to the collection after the moodboard was saved
+          const savedPhotoIds = new Set(
+            moodboardData.items
+              .filter((row) => row.photo_id != null)
+              .map((row) => row.photo_id!)
+          );
+          const newPhotos = photos.filter((p) => !savedPhotoIds.has(p.id));
+
+          if (newPhotos.length > 0) {
+            const BASE_WIDTH = 240;
+            const maxZIndex = Math.max(0, ...restored.map((i) => i.zIndex ?? 0));
+            const maxY = Math.max(0, ...restored.map((i) => i.y + ((i.baseHeight ?? 150) * i.scale)));
+
+            const newImageSizes = await Promise.all(
+              newPhotos.map(
+                (photo) =>
+                  new Promise<{ w: number; h: number }>((resolve) => {
+                    const img = new Image();
+                    img.onload = () =>
+                      resolve({ w: img.naturalWidth, h: img.naturalHeight });
+                    img.onerror = () => resolve({ w: BASE_WIDTH, h: BASE_WIDTH });
+                    img.src = photo.url;
+                  })
+              )
+            );
+
+            const GAP_X = 280;
+            const GAP = 40;
+            const START_X = 80;
+            const COLS = 3;
+            const startY = maxY + GAP;
+
+            const heights = newImageSizes.map(({ w, h }) => {
+              const aspect = h / (w || 1);
+              return Math.round(BASE_WIDTH * aspect);
+            });
+
+            const rowTops: number[] = [startY];
+
+            const newItems: MoodboardItemData[] = newPhotos.map((photo, idx) => {
+              const col = idx % COLS;
+              const row = Math.floor(idx / COLS);
+              const baseH = heights[idx];
+
+              if (row >= rowTops.length) {
+                const prevRowStart = (row - 1) * COLS;
+                const prevRowEnd = Math.min(prevRowStart + COLS, newPhotos.length);
+                const maxH = Math.max(...heights.slice(prevRowStart, prevRowEnd));
+                rowTops.push(rowTops[row - 1] + maxH + GAP);
+              }
+
+              return {
+                id: String(photo.id),
+                type: "image" as const,
+                label: photo.title || `Image`,
+                color: "#e2e8f0",
+                imageUrl: photo.url,
+                x: START_X + col * GAP_X,
+                y: rowTops[row],
+                scale: 1,
+                baseWidth: BASE_WIDTH,
+                baseHeight: baseH,
+                zIndex: maxZIndex + idx + 1,
+              };
+            });
+
+            restored.push(...newItems);
+          }
+
           setItems(restored);
         } else {
           // No saved layout — generate default grid
@@ -256,6 +325,71 @@ export default function MoodboardPage() {
     setZoom((z) => Math.max(z - 0.1, 0.25));
   }, []);
 
+  const handleReset = useCallback(async () => {
+    const BASE_WIDTH = 240;
+    const currentItems = items.filter((i) => i.type === "image");
+
+    const imageSizes = await Promise.all(
+      currentItems.map(
+        (item) =>
+          new Promise<{ w: number; h: number }>((resolve) => {
+            if (item.imageUrl) {
+              const img = new Image();
+              img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+              img.onerror = () => resolve({ w: item.baseWidth ?? BASE_WIDTH, h: item.baseHeight ?? BASE_WIDTH });
+              img.src = item.imageUrl;
+            } else {
+              resolve({ w: item.baseWidth ?? BASE_WIDTH, h: item.baseHeight ?? BASE_WIDTH });
+            }
+          })
+      )
+    );
+
+    const COLS = 3;
+    const GAP_X = 280;
+    const GAP = 40;
+    const START_X = 80;
+    const START_Y = 60;
+
+    const heights = imageSizes.map(({ w, h }) => {
+      const aspect = h / (w || 1);
+      return Math.round(BASE_WIDTH * aspect);
+    });
+
+    const rowTops: number[] = [START_Y];
+
+    const resetItems: MoodboardItemData[] = currentItems.map((item, idx) => {
+      const col = idx % COLS;
+      const row = Math.floor(idx / COLS);
+      const baseH = heights[idx];
+
+      if (row >= rowTops.length) {
+        const prevRowStart = (row - 1) * COLS;
+        const prevRowEnd = Math.min(prevRowStart + COLS, currentItems.length);
+        const maxH = Math.max(...heights.slice(prevRowStart, prevRowEnd));
+        rowTops.push(rowTops[row - 1] + maxH + GAP);
+      }
+
+      return {
+        ...item,
+        x: START_X + col * GAP_X,
+        y: rowTops[row],
+        scale: 1,
+        baseWidth: BASE_WIDTH,
+        baseHeight: baseH,
+        zIndex: idx,
+        borderRadius: 0,
+        locked: false,
+        hidden: false,
+      };
+    });
+
+    setItems(resetItems);
+    setSelectedId(null);
+    setBgColor("#EDEDED");
+    setZoom(1);
+  }, [items]);
+
   const canvasRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
 
@@ -345,6 +479,7 @@ export default function MoodboardPage() {
         onBgColorChange={setBgColor}
         onExport={handleExport}
         exporting={exporting}
+        onReset={handleReset}
       />
 
       <div className="flex flex-1 overflow-hidden">

@@ -5,6 +5,7 @@ import {
   ZoomInOutlined,
   ZoomOutOutlined,
   FileDownloadOutlined,
+  RestartAltOutlined,
 } from "@mui/icons-material";
 import { BackButton } from "@/app/components/ui/BackButton";
 import { ExportModal, ExportFormat } from "@/app/components/moodboard/ExportModal";
@@ -20,6 +21,7 @@ interface MoodboardHeaderProps {
   onBgColorChange: (color: string) => void;
   onExport: (format: ExportFormat) => void;
   exporting: boolean;
+  onReset: () => void;
 }
 
 export function MoodboardHeader({
@@ -33,6 +35,7 @@ export function MoodboardHeader({
   onBgColorChange,
   onExport,
   exporting,
+  onReset,
 }: MoodboardHeaderProps) {
   const [hexInput, setHexInput] = useState(bgColor.toUpperCase());
   const [exportOpen, setExportOpen] = useState(false);
@@ -119,6 +122,18 @@ export function MoodboardHeader({
             className="w-[4.5rem] px-1.5 py-1 border border-gray-200 rounded text-xs text-gray-700 font-mono uppercase"
           />
         </label>
+
+        <div className="w-px h-5 bg-gray-200 mx-1" />
+
+        <button
+          type="button"
+          onClick={onReset}
+          className="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+          aria-label="Reset layout"
+          title="Reset layout"
+        >
+          <RestartAltOutlined sx={{ fontSize: 18 }} />
+        </button>
 
         <div className="w-px h-5 bg-gray-200 mx-1" />
 
