@@ -7,6 +7,7 @@ export interface Photo {
   file_size_mb: number;
   order_id: number;
   title?: string;
+  description?: string;
   created_at?: string;
 }
 
@@ -15,7 +16,8 @@ export async function uploadPhoto(
   file: File,
   collectionId?: number,
   title?: string,
-  tagNames?: string[]
+  tagNames?: string[],
+  description?: string
 ): Promise<Photo> {
   const formData = new FormData();
   formData.append("file", file);
@@ -26,6 +28,7 @@ export async function uploadPhoto(
   if (tagNames && tagNames.length > 0) {
     params.append("tag_names", JSON.stringify(tagNames));
   }
+  if (description) params.append("description", description);
 
   const res = await fetch(`${API_URL}/api/photos/upload?${params}`, {
     method: "POST",
@@ -94,7 +97,7 @@ export async function reorderPhotos(
 export async function updatePhoto(
   accessToken: string,
   photoId: number,
-  data: { title?: string }
+  data: { title?: string; description?: string }
 ): Promise<Photo> {
   const res = await fetch(
     `${API_URL}/api/photos/${photoId}?access_token=${encodeURIComponent(accessToken)}`,
@@ -108,6 +111,33 @@ export async function updatePhoto(
   if (!res.ok) {
     const error = await res.json();
     throw new Error(error.detail || "Update failed");
+  }
+
+  return res.json();
+}
+
+export interface TagSuggestion {
+  tags: string[];
+  description: string;
+}
+
+export async function getAiTagSuggestions(
+  accessToken: string,
+  file: File
+): Promise<TagSuggestion> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const params = new URLSearchParams({ access_token: accessToken });
+
+  const res = await fetch(`${API_URL}/api/ai/tag-image?${params}`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || "AI tagging failed");
   }
 
   return res.json();

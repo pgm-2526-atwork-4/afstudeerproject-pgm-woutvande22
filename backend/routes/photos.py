@@ -23,6 +23,7 @@ class PhotoResponse(BaseModel):
     file_size_mb: float
     order_id: Optional[int] = 0
     title: Optional[str] = None
+    description: Optional[str] = None
     created_at: Optional[str] = None
 
 class PhotoListResponse(BaseModel):
@@ -38,6 +39,7 @@ class ReorderRequest(BaseModel):
 
 class UpdatePhotoRequest(BaseModel):
     title: Optional[str] = None
+    description: Optional[str] = None
 
 # upload
 
@@ -46,6 +48,7 @@ async def upload_photo(
     access_token: str = Query(...),
     collection_id: Optional[int] = Query(None),
     title: Optional[str] = Query(None),
+    description: Optional[str] = Query(None),
     tag_names: Optional[str] = Query(None, description="JSON array of tag names, e.g. '[\"landscape\",\"sunset\"]'"),
     file: UploadFile = File(...),
 ):
@@ -148,6 +151,7 @@ async def upload_photo(
                 "file_size_mb": file_size_mb,
                 "order_id": next_order,
                 "title": title,
+                "description": description,
             })
             .execute()
         )
@@ -358,6 +362,8 @@ def update_photo(photo_id: int, access_token: str = Query(...), body: UpdatePhot
     update_data = {}
     if body.title is not None:
         update_data["title"] = body.title
+    if body.description is not None:
+        update_data["description"] = body.description
 
     if not update_data:
         return PhotoResponse(**existing.data)

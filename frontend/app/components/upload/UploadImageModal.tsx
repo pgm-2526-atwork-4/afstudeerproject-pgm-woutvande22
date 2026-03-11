@@ -6,7 +6,7 @@ import { FilePicker } from "./FilePicker";
 import { ImagePreviewThumbnail } from "./ImagePreviewThumbnail";
 import { FormInput } from "@/app/components/ui/FormInput";
 import { TagSelector, type SelectedTag } from "./TagSelector";
-import { uploadPhoto } from "@/app/lib/photos";
+import { uploadPhoto, getAiTagSuggestions } from "@/app/lib/photos";
 
 interface UploadImageModalProps {
   open: boolean;
@@ -25,6 +25,8 @@ export const UploadImageModal = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [selectedTags, setSelectedTags] = useState<SelectedTag[]>([]);
+  const [description, setDescription] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +35,8 @@ export const UploadImageModal = ({
     setPreviewUrl(null);
     setTitle("");
     setSelectedTags([]);
+    setDescription("");
+    setAiLoading(false);
     setUploading(false);
     setError(null);
   }, []);
@@ -53,6 +57,25 @@ export const UploadImageModal = ({
     // Create a local preview URL
     const url = URL.createObjectURL(selectedFile);
     setPreviewUrl(url);
+
+    // Call AI tagging
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      setAiLoading(true);
+      getAiTagSuggestions(token, selectedFile)
+        .then((result) => {
+          setSelectedTags(
+            result.tags.map((name) => ({ name, color_hex: "#6B7280" }))
+          );
+          if (result.description) {
+            setDescription(result.description);
+          }
+        })
+        .catch((err) => {
+          console.error("AI tagging failed:", err);
+        })
+        .finally(() => setAiLoading(false));
+    }
   }, []);
 
   const handleSubmit = useCallback(
@@ -75,7 +98,7 @@ export const UploadImageModal = ({
 
       try {
         const tagNames = selectedTags.map((t) => t.name);
-        await uploadPhoto(token, file, collectionId, title || undefined, tagNames.length > 0 ? tagNames : undefined);
+        await uploadPhoto(token, file, collectionId, title || undefined, tagNames.length > 0 ? tagNames : undefined, description || undefined);
         resetState();
         onClose();
         onUploadSuccess?.();
@@ -85,7 +108,7 @@ export const UploadImageModal = ({
         setUploading(false);
       }
     },
-    [file, collectionId, title, selectedTags, onClose, onUploadSuccess, resetState]
+    [file, collectionId, title, description, selectedTags, onClose, onUploadSuccess, resetState]
   );
 
   return (
@@ -111,10 +134,32 @@ export const UploadImageModal = ({
         )}
 
         {file && (
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="description" className="text-sm font-medium text-gray-700">
+              Description {aiLoading && <span className="text-sky-500 text-xs">(AI is analyzing...)</span>}
+            </label>
+            <textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Enter a description for your image"
+              rows={2}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent resize-none"
+            />
+          </div>
+        )}
+
+        {file && (
           <TagSelector
             selectedTags={selectedTags}
             onChange={setSelectedTags}
           />
+        )}
+
+        {aiLoading && (
+          <p className="text-sm text-sky-600 bg-sky-50 px-3 py-2 rounded-lg">
+            AI is generating tags and description…
+          </p>
         )}
 
         {error && (

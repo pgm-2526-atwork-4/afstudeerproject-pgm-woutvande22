@@ -9,6 +9,7 @@ from routes.photos import router as photos_router
 from routes.tags import router as tags_router
 from routes.collections import router as collections_router
 from routes.moodboards import router as moodboards_router
+from routes.ai import router as ai_router
 
 app = FastAPI(title="AI Image Tagger & Moodboarder API")
 
@@ -29,6 +30,7 @@ app.include_router(photos_router)
 app.include_router(tags_router)
 app.include_router(collections_router)
 app.include_router(moodboards_router)
+app.include_router(ai_router)
 
 @app.get("/api/status")
 async def get_status():
