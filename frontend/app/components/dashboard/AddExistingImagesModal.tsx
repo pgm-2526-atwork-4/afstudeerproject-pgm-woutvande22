@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Modal } from "@/app/components/ui/Modal";
 import { Button } from "@/app/components/ui/Button";
+import { TagFilterDropdown, SelectedTagChips } from "@/app/components/ui/TagFilterDropdown";
 import Image from "next/image";
-import { SearchOutlined, CheckCircleOutlined, CloseOutlined } from "@mui/icons-material";
+import { SearchOutlined, CheckCircleOutlined } from "@mui/icons-material";
 import { fetchPhotos, type Photo } from "@/app/lib/photos";
 import { addPhotoToCollection, fetchCollectionPhotos } from "@/app/lib/collections";
 import { fetchBatchPhotoTags, fetchTags, type Tag } from "@/app/lib/tags";
@@ -31,19 +32,7 @@ export const AddExistingImagesModal = ({
   const [adding, setAdding] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
   const [error, setError] = useState("");
-  const tagDropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (tagDropdownRef.current && !tagDropdownRef.current.contains(e.target as Node)) {
-        setTagDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -182,78 +171,18 @@ export const AddExistingImagesModal = ({
             />
           </div>
 
-          <div className="relative" ref={tagDropdownRef}>
-            <button
-              type="button"
-              onClick={() => setTagDropdownOpen((v) => !v)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent cursor-pointer flex items-center gap-2 min-w-[120px]"
-            >
-              {selectedTags.length === 0
-                ? "All tags"
-                : `${selectedTags.length} tag${selectedTags.length > 1 ? "s" : ""}`}
-              <svg className="w-4 h-4 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {tagDropdownOpen && (
-              <div className="absolute right-0 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
-                {selectedTags.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setSelectedTags([])}
-                    className="w-full text-left px-3 py-2 text-xs text-sky-500 hover:bg-gray-50 border-b border-gray-100"
-                  >
-                    Clear all
-                  </button>
-                )}
-                {tags.map((tag) => (
-                  <label
-                    key={tag.id}
-                    className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-700"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedTags.includes(tag.name)}
-                      onChange={() => toggleTagFilter(tag.name)}
-                      className="rounded border-gray-300 text-sky-400 focus:ring-sky-400"
-                    />
-                    <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: tag.color_hex }}
-                    />
-                    {tag.name}
-                  </label>
-                ))}
-                {tags.length === 0 && (
-                  <p className="px-3 py-2 text-sm text-gray-400">No tags yet</p>
-                )}
-              </div>
-            )}
-          </div>
+          <TagFilterDropdown
+            selectedTags={selectedTags}
+            onTagsChange={setSelectedTags}
+            tags={tags}
+          />
         </div>
 
-        {selectedTags.length > 0 && (
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {selectedTags.map((name) => {
-              const tag = tags.find((t) => t.name === name);
-              return (
-                <span
-                  key={name}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium text-white"
-                  style={{ backgroundColor: tag?.color_hex ?? "#6B7280" }}
-                >
-                  {name}
-                  <CloseOutlined
-                    sx={{ fontSize: 12 }}
-                    className="cursor-pointer opacity-80 hover:opacity-100"
-                    onClick={() => toggleTagFilter(name)}
-                  />
-                </span>
-              );
-            })}
-          </div>
-        )}
+        <SelectedTagChips
+          selectedTags={selectedTags}
+          onRemove={toggleTagFilter}
+          tags={tags}
+        />
 
         {loading ? (
           <p className="text-sm text-gray-400 py-8 text-center">Loading images…</p>
