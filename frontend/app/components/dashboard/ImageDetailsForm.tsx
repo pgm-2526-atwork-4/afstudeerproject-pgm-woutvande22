@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FolderOutlined, CalendarTodayOutlined, StraightenOutlined, ImageOutlined } from "@mui/icons-material";
+import { FolderOutlined, CalendarTodayOutlined, StraightenOutlined, ImageOutlined, AutoAwesomeOutlined } from "@mui/icons-material";
 import { FormInput } from "@/app/components/ui/FormInput";
 import { Button } from "@/app/components/ui/Button";
 import { TagList } from "./TagList";
@@ -19,6 +19,7 @@ interface ImageDetailsFormProps {
   tagsLoading?: boolean;
   collections?: Collection[];
   collectionsLoading?: boolean;
+  description?: string;
   onSave?: (title: string) => Promise<void>;
   onCancel?: () => void;
   onAddTag?: (tag: Tag) => void;
@@ -37,6 +38,7 @@ export const ImageDetailsForm = ({
   tagsLoading,
   collections = [],
   collectionsLoading,
+  description,
   onSave,
   onCancel,
   onAddTag,
@@ -163,6 +165,17 @@ export const ImageDetailsForm = ({
             </div>
           )}
         </div>
+
+        {/* AI Description */}
+        {description && (
+          <div className="flex items-start gap-2.5">
+            <AutoAwesomeOutlined className="text-gray-400 mt-0.5" sx={{ fontSize: 18 }} />
+            <div>
+              <p className="text-xs text-gray-400">AI Description</p>
+              <p className="text-sm text-gray-700">{description}</p>
+            </div>
+          </div>
+        )}
 
         {/* Collections */}
         <div className="flex flex-col gap-1.5">

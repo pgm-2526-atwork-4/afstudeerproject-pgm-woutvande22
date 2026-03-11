@@ -223,6 +223,14 @@ export default function ImageDetailPage() {
 
     const result = await getAiTagsForPhoto(token, photo.id);
 
+    // Save the AI description to the photo
+    if (result.description) {
+      const updated = await updatePhoto(token, photo.id, { description: result.description });
+      setAllPhotos((prev) =>
+        prev.map((p) => (p.id === updated.id ? updated : p))
+      );
+    }
+
     for (const tagName of result.tags) {
       const existing = allTags.find((t) => t.name.toLowerCase() === tagName.toLowerCase());
       if (existing) {
@@ -299,6 +307,7 @@ export default function ImageDetailPage() {
             tagsLoading={tagsLoading}
             collections={photoCollections}
             collectionsLoading={collectionsLoading}
+            description={photo.description}
             onSave={handleSave}
             onCancel={handleCancel}
             onAddTag={handleAddTag}
