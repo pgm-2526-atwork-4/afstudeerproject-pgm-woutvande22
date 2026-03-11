@@ -42,7 +42,7 @@ export const TagForm = ({
           type="color"
           value={color}
           onChange={(e) => setColor(e.target.value)}
-          className="w-8 h-8 rounded-md border border-gray-300 cursor-pointer p-0"
+          className="w-8 h-8 rounded-md cursor-pointer p-0"
         />
       </label>
 
