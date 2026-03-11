@@ -67,6 +67,11 @@ export const TagsPage = () => {
       return;
     }
 
+    // Check for duplicate tag name
+    if (tags.some((t) => t.name.toLowerCase() === name.toLowerCase())) {
+      throw new Error("A tag with this name already exists");
+    }
+
     try {
       console.log("Creating tag with token:", token.substring(0, 20) + "...");
       const newTag = await createTag(token, name, color);
@@ -78,6 +83,7 @@ export const TagsPage = () => {
       setCreating(false);
     } catch (err) {
       console.error("Failed to create tag:", err);
+      throw err;
     }
   };
 

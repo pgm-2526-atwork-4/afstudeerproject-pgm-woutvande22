@@ -5,7 +5,7 @@ import { useState } from "react";
 interface TagFormProps {
   initialName?: string;
   initialColor?: string;
-  onSave: (name: string, color: string) => void;
+  onSave: (name: string, color: string) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -17,18 +17,25 @@ export const TagForm = ({
 }: TagFormProps) => {
   const [name, setName] = useState(initialName);
   const [color, setColor] = useState(initialColor);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    onSave(name.trim().toLowerCase(), color);
+    setError(null);
+    try {
+      await onSave(name.trim().toLowerCase(), color);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save tag");
+    }
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex items-center gap-4 px-5 py-3.5 bg-white rounded-xl border border-gray-200"
-    >
+    <div className="flex flex-col gap-2">
+      <form
+        onSubmit={handleSubmit}
+        className="flex items-center gap-4 px-5 py-3.5 bg-white rounded-xl border border-gray-200"
+      >
       <label className="flex items-center gap-2 text-sm text-gray-600">
         Color:
         <input
@@ -63,6 +70,12 @@ export const TagForm = ({
           Cancel
         </button>
       </div>
-    </form>
+      </form>
+      {error && (
+        <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+          {error}
+        </p>
+      )}
+    </div>
   );
 };
