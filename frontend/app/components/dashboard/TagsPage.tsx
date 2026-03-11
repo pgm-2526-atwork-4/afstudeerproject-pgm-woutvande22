@@ -172,14 +172,6 @@ export const TagsPage = () => {
       </div>
 
       <div className="px-8 mt-4">
-        <nav className="flex gap-4 mb-6" aria-label="Tag filter">
-          <span className="text-sm font-medium text-gray-500 hover:text-gray-700 cursor-pointer transition-colors">
-            All Images
-          </span>
-          <span className="text-sm font-medium text-gray-500 hover:text-gray-700 cursor-pointer transition-colors">
-            Your Collections
-          </span>
-        </nav>
 
         {creating && (
           <div className="mb-4">
