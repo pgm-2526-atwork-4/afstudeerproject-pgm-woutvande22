@@ -5,7 +5,7 @@ import Link from "next/link";
 import { FolderOutlined, CalendarTodayOutlined, StraightenOutlined, ImageOutlined, AutoAwesomeOutlined } from "@mui/icons-material";
 import { FormInput } from "@/app/components/ui/FormInput";
 import { Button } from "@/app/components/ui/Button";
-import { TagList } from "./TagList";
+import { TagList } from "../tags/TagList";
 import type { Tag } from "@/app/lib/tags";
 import type { Collection } from "@/app/lib/collections";
 

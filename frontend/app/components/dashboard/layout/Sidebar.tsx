@@ -14,7 +14,7 @@ import {
   ChevronRightOutlined,
 } from "@mui/icons-material";
 
-import { CollectionDropdown } from "@/app/components/dashboard/CollectionDropdown";
+import { CollectionDropdown } from "@/app/components/dashboard/collections/CollectionDropdown";
 import { useAuth } from "@/app/context/AuthContext";
 import { fetchPhotos } from "@/app/lib/photos";
 import { fetchCollections } from "@/app/lib/collections";

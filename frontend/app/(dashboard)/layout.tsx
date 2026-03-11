@@ -3,7 +3,7 @@
 import { useAuth } from "@/app/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Sidebar } from "@/app/components/dashboard/Sidebar";
+import { Sidebar } from "@/app/components/dashboard/layout/Sidebar";
 
 export default function DashboardLayout({
   children,

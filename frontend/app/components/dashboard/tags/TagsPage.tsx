@@ -2,9 +2,9 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { SearchOutlined, KeyboardArrowDownOutlined } from "@mui/icons-material";
-import { PageHeader } from "@/app/components/dashboard/PageHeader";
-import { TagRow } from "@/app/components/dashboard/TagRow";
-import { TagForm } from "@/app/components/dashboard/TagForm";
+import { PageHeader } from "@/app/components/dashboard/layout/PageHeader";
+import { TagRow } from "@/app/components/dashboard/tags/TagRow";
+import { TagForm } from "@/app/components/dashboard/tags/TagForm";
 import { Modal } from "@/app/components/ui/Modal";
 import { fetchTags, createTag, updateTag, deleteTag } from "@/app/lib/tags";
 

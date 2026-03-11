@@ -1,8 +1,8 @@
 "use client";
 
-import { PageHeader } from "@/app/components/dashboard/PageHeader";
-import { ProfileInfoSection } from "@/app/components/dashboard/ProfileInfoSection";
-import { StorageSection } from "@/app/components/dashboard/StorageSection";
+import { PageHeader } from "@/app/components/dashboard/layout/PageHeader";
+import { ProfileInfoSection } from "@/app/components/dashboard/settings/ProfileInfoSection";
+import { StorageSection } from "@/app/components/dashboard/settings/StorageSection";
 
 export const SettingsPage = () => (
   <section className="pb-24">

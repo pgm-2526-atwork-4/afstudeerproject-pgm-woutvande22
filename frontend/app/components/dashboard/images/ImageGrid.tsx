@@ -1,8 +1,8 @@
 "use client";
 
 import { ImageCard } from "./ImageCard";
-import { SortableList } from "../dnd/SortableList";
-import { SortableGridItem } from "../dnd/SortableGridItem";
+import { SortableList } from "../../dnd/SortableList";
+import { SortableGridItem } from "../../dnd/SortableGridItem";
 
 export interface ImageTag {
   name: string;

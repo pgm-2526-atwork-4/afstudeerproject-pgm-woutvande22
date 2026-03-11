@@ -1,15 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { PageHeader } from "@/app/components/dashboard/PageHeader";
-import { UploadButton } from "@/app/components/dashboard/UploadButton";
-import { SearchFilterBar } from "@/app/components/dashboard/SearchbarFilterBar";
-import { ImageGrid, type ImageItem } from "@/app/components/dashboard/ImageGrid";
-import { BulkActionBar } from "@/app/components/dashboard/BulkActionBar";
-import { GenerateCollectionButton } from "@/app/components/dashboard/GenerateCollectionButton";
+import { PageHeader } from "@/app/components/dashboard/layout/PageHeader";
+import { UploadButton } from "@/app/components/dashboard/images/UploadButton";
+import { SearchFilterBar } from "@/app/components/dashboard/images/SearchbarFilterBar";
+import { ImageGrid, type ImageItem } from "@/app/components/dashboard/images/ImageGrid";
+import { BulkActionBar } from "@/app/components/dashboard/images/BulkActionBar";
+import { GenerateCollectionButton } from "@/app/components/dashboard/collections/GenerateCollectionButton";
 import { fetchPhotos, reorderPhotos } from "@/app/lib/photos";
 import { fetchBatchPhotoTags, fetchTags, type Tag } from "@/app/lib/tags";
-import { ImageGridSkeleton } from "@/app/components/dashboard/ImageCardSkeleton";
+import { ImageGridSkeleton } from "@/app/components/dashboard/images/ImageCardSkeleton";
 
 export default function DashboardPage() {
   const [images, setImages] = useState<ImageItem[]>([]);

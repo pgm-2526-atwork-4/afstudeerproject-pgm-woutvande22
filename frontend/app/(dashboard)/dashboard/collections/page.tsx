@@ -1,18 +1,18 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { PageHeader } from "@/app/components/dashboard/PageHeader";
-import { CollectionSearchBar } from "@/app/components/dashboard/CollectionSearchBar";
-import { CollectionGrid } from "@/app/components/dashboard/CollectionGrid";
-import { CollectionListItem } from "@/app/components/dashboard/CollectionListItem";
-import { GenerateCollectionButton } from "@/app/components/dashboard/GenerateCollectionButton";
-import { CreateCollectionModal } from "@/app/components/dashboard/CreateCollectionModal";
+import { PageHeader } from "@/app/components/dashboard/layout/PageHeader";
+import { CollectionSearchBar } from "@/app/components/dashboard/collections/CollectionSearchBar";
+import { CollectionGrid } from "@/app/components/dashboard/collections/CollectionGrid";
+import { CollectionListItem } from "@/app/components/dashboard/collections/CollectionListItem";
+import { GenerateCollectionButton } from "@/app/components/dashboard/collections/GenerateCollectionButton";
+import { CreateCollectionModal } from "@/app/components/dashboard/collections/CreateCollectionModal";
 import {
   fetchCollections,
   togglePinCollection,
   type Collection,
 } from "@/app/lib/collections";
-import { CollectionGridSkeleton } from "@/app/components/dashboard/CollectionCardSkeleton";
+import { CollectionGridSkeleton } from "@/app/components/dashboard/collections/CollectionCardSkeleton";
 import { GridViewOutlined, ViewListOutlined } from "@mui/icons-material";
 
 export default function CollectionsPage() {

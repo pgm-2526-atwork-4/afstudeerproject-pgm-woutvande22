@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { CollectionHeader } from "@/app/components/dashboard/CollectionHeader";
-import { ImageGrid, type ImageItem } from "@/app/components/dashboard/ImageGrid";
-import { BulkActionBar } from "@/app/components/dashboard/BulkActionBar";
+import { CollectionHeader } from "@/app/components/dashboard/collections/CollectionHeader";
+import { ImageGrid, type ImageItem } from "@/app/components/dashboard/images/ImageGrid";
+import { BulkActionBar } from "@/app/components/dashboard/images/BulkActionBar";
 import { UploadImageModal } from "@/app/components/upload/UploadImageModal";
-import { AddExistingImagesModal } from "@/app/components/dashboard/AddExistingImagesModal";
+import { AddExistingImagesModal } from "@/app/components/dashboard/collections/AddExistingImagesModal";
 import { AddPhotoAlternateOutlined, CollectionsOutlined } from "@mui/icons-material";
 import { TagFilterDropdown, TagSearchInput } from "@/app/components/ui/TagFilterDropdown";
 import {
@@ -14,7 +14,7 @@ import {
   type Collection,
 } from "@/app/lib/collections";
 import { fetchBatchPhotoTags, fetchTags, type Tag } from "@/app/lib/tags";
-import { ImageGridSkeleton } from "@/app/components/dashboard/ImageCardSkeleton";
+import { ImageGridSkeleton } from "@/app/components/dashboard/images/ImageCardSkeleton";
 
 interface CollectionDetailContentProps {
   collectionId: string;

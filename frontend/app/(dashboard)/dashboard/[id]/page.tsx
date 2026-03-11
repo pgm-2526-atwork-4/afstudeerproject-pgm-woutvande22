@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { PageHeader } from "@/app/components/dashboard/PageHeader";
+import { PageHeader } from "@/app/components/dashboard/layout/PageHeader";
 import { BackButton } from "@/app/components/ui/BackButton";
-import { ImagePreview } from "@/app/components/dashboard/ImagePreview";
-import { ImageDetailsForm } from "@/app/components/dashboard/ImageDetailsForm";
+import { ImagePreview } from "@/app/components/dashboard/images/ImagePreview";
+import { ImageDetailsForm } from "@/app/components/dashboard/images/ImageDetailsForm";
 import { type Photo, fetchPhotos, updatePhoto, getAiTagsForPhoto } from "@/app/lib/photos";
 import {
   type Tag,

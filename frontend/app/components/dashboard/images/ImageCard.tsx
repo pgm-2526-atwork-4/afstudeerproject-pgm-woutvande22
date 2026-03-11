@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { DeleteButton } from "@/app/components/dashboard/DeleteButton";
-import { DeleteImageModal } from "@/app/components/dashboard/DeleteImageModal";
+import { DeleteButton } from "@/app/components/dashboard/images/DeleteButton";
+import { DeleteImageModal } from "@/app/components/dashboard/images/DeleteImageModal";
 import { deletePhoto } from "@/app/lib/photos";
 import { removePhotoFromCollection } from "@/app/lib/collections";
 

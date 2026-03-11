@@ -6,7 +6,7 @@ import {
   CreateNewFolderOutlined,
   CloseOutlined,
 } from "@mui/icons-material";
-import { AddToCollectionModal } from "@/app/components/dashboard/AddToCollectionModal";
+import { AddToCollectionModal } from "@/app/components/dashboard/collections/AddToCollectionModal";
 import { Modal } from "@/app/components/ui/Modal";
 import { deletePhoto } from "@/app/lib/photos";
 import { removePhotoFromCollection } from "@/app/lib/collections";
