@@ -3,9 +3,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { Modal } from "@/app/components/ui/Modal";
 import { Button } from "@/app/components/ui/Button";
-import { TagFilterDropdown, SelectedTagChips } from "@/app/components/ui/TagFilterDropdown";
+import { TagFilterDropdown, TagSearchInput } from "@/app/components/ui/TagFilterDropdown";
 import Image from "next/image";
-import { SearchOutlined, CheckCircleOutlined } from "@mui/icons-material";
+import { CheckCircleOutlined } from "@mui/icons-material";
 import { fetchPhotos, type Photo } from "@/app/lib/photos";
 import { addPhotoToCollection, fetchCollectionPhotos } from "@/app/lib/collections";
 import { fetchBatchPhotoTags, fetchTags, type Tag } from "@/app/lib/tags";
@@ -112,12 +112,6 @@ export const AddExistingImagesModal = ({
     });
   };
 
-  const toggleTagFilter = (name: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(name) ? prev.filter((t) => t !== name) : [...prev, name]
-    );
-  };
-
   const handleAdd = async () => {
     if (selectedIds.size === 0) return;
 
@@ -157,19 +151,14 @@ export const AddExistingImagesModal = ({
         </p>
 
         <div className="flex items-center gap-3">
-          <div className="relative flex-1">
-            <SearchOutlined
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              sx={{ fontSize: 18 }}
-            />
-            <input
-              type="text"
-              placeholder="Search by title or tag..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent"
-            />
-          </div>
+          <TagSearchInput
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            selectedTags={selectedTags}
+            onTagsChange={setSelectedTags}
+            tags={tags}
+            placeholder="Search by title or tag..."
+          />
 
           <TagFilterDropdown
             selectedTags={selectedTags}
@@ -177,12 +166,6 @@ export const AddExistingImagesModal = ({
             tags={tags}
           />
         </div>
-
-        <SelectedTagChips
-          selectedTags={selectedTags}
-          onRemove={toggleTagFilter}
-          tags={tags}
-        />
 
         {loading ? (
           <p className="text-sm text-gray-400 py-8 text-center">Loading images…</p>

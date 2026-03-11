@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { CloseOutlined } from "@mui/icons-material";
+import { CloseOutlined, SearchOutlined } from "@mui/icons-material";
 
 interface TagOption {
   id: number;
@@ -141,6 +141,94 @@ export const SelectedTagChips = ({
           </span>
         );
       })}
+    </div>
+  );
+};
+
+interface TagSearchInputProps {
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+  selectedTags: string[];
+  onTagsChange: (tags: string[]) => void;
+  tags: TagOption[];
+  placeholder?: string;
+}
+
+export const TagSearchInput = ({
+  searchQuery,
+  onSearchChange,
+  selectedTags,
+  onTagsChange,
+  tags,
+  placeholder = "Search by title or tags...",
+}: TagSearchInputProps) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === " " && searchQuery.trim()) {
+      const trimmed = searchQuery.trimEnd();
+      const lower = trimmed.toLowerCase();
+      // Find the longest tag name that matches the end of the input (handles multi-word tags)
+      const match = tags
+        .filter((t) => !selectedTags.includes(t.name))
+        .sort((a, b) => b.name.length - a.name.length)
+        .find((t) => {
+          const tagLower = t.name.toLowerCase();
+          if (!lower.endsWith(tagLower)) return false;
+          const before = trimmed.length - t.name.length;
+          return before === 0 || trimmed[before - 1] === " ";
+        });
+      if (match) {
+        e.preventDefault();
+        onTagsChange([...selectedTags, match.name]);
+        const remaining = trimmed.slice(0, trimmed.length - match.name.length).trimEnd();
+        onSearchChange(remaining);
+      }
+    }
+    if (e.key === "Backspace" && searchQuery === "" && selectedTags.length > 0) {
+      onTagsChange(selectedTags.slice(0, -1));
+    }
+  };
+
+  const removeTag = (name: string) => {
+    onTagsChange(selectedTags.filter((t) => t !== name));
+  };
+
+  return (
+    <div
+      className="flex items-center gap-1.5 flex-wrap flex-1 min-h-[42px] px-3 py-1.5 border border-gray-300 rounded-lg bg-white focus-within:ring-2 focus-within:ring-sky-400 focus-within:border-transparent transition-shadow cursor-text"
+      onClick={() => inputRef.current?.focus()}
+    >
+      <SearchOutlined className="text-gray-400 shrink-0" sx={{ fontSize: 18 }} />
+      {selectedTags.map((name) => {
+        const tag = tags.find((t) => t.name === name);
+        return (
+          <span
+            key={name}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-white shrink-0"
+            style={{ backgroundColor: tag?.color_hex ?? "#6B7280" }}
+          >
+            {name}
+            <CloseOutlined
+              sx={{ fontSize: 11 }}
+              className="cursor-pointer opacity-80 hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                removeTag(name);
+              }}
+            />
+          </span>
+        );
+      })}
+      <input
+        ref={inputRef}
+        type="text"
+        placeholder={selectedTags.length === 0 ? placeholder : ""}
+        value={searchQuery}
+        onChange={(e) => onSearchChange(e.target.value)}
+        onKeyDown={handleKeyDown}
+        className="flex-1 min-w-[80px] py-1 text-sm text-gray-900 placeholder:text-gray-400 outline-none bg-transparent"
+      />
     </div>
   );
 };
