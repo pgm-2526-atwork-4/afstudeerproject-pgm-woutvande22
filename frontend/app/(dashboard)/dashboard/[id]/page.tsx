@@ -6,7 +6,7 @@ import { PageHeader } from "@/app/components/dashboard/PageHeader";
 import { BackButton } from "@/app/components/ui/BackButton";
 import { ImagePreview } from "@/app/components/dashboard/ImagePreview";
 import { ImageDetailsForm } from "@/app/components/dashboard/ImageDetailsForm";
-import { type Photo, fetchPhotos, updatePhoto } from "@/app/lib/photos";
+import { type Photo, fetchPhotos, updatePhoto, getAiTagsForPhoto } from "@/app/lib/photos";
 import {
   type Tag,
   getPhotoTags,
@@ -217,6 +217,28 @@ export default function ImageDetailPage() {
     }
   }, [photo]);
 
+  const handleGenerateTags = useCallback(async () => {
+    const token = localStorage.getItem("access_token");
+    if (!token || !photo) return;
+
+    const result = await getAiTagsForPhoto(token, photo.id);
+
+    for (const tagName of result.tags) {
+      const existing = allTags.find((t) => t.name.toLowerCase() === tagName.toLowerCase());
+      if (existing) {
+        // Skip if already on the photo
+        if (photoTags.some((t) => t.id === existing.id)) continue;
+        await addTagToPhoto(token, photo.id, existing.id);
+        setPhotoTags((prev) => [...prev, existing]);
+      } else {
+        const newTag = await createTag(token, tagName, DEFAULT_COLOR);
+        setAllTags((prev) => [...prev, newTag]);
+        await addTagToPhoto(token, photo.id, newTag.id);
+        setPhotoTags((prev) => [...prev, newTag]);
+      }
+    }
+  }, [photo, allTags, photoTags]);
+
   // Preload adjacent image files
   const prevPhoto = currentIndex > 0 ? allPhotos[currentIndex - 1] : null;
   const nextPhoto = currentIndex < allPhotos.length - 1 ? allPhotos[currentIndex + 1] : null;
@@ -282,6 +304,7 @@ export default function ImageDetailPage() {
             onAddTag={handleAddTag}
             onRemoveTag={handleRemoveTag}
             onCreateTag={handleCreateTag}
+            onGenerateTags={handleGenerateTags}
           />
         </div>
       </div>

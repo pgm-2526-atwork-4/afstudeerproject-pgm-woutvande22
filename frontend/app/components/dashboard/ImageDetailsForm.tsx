@@ -24,6 +24,7 @@ interface ImageDetailsFormProps {
   onAddTag?: (tag: Tag) => void;
   onRemoveTag?: (tagId: number) => void;
   onCreateTag?: (name: string) => void;
+  onGenerateTags?: () => Promise<void>;
 }
 
 export const ImageDetailsForm = ({
@@ -41,9 +42,11 @@ export const ImageDetailsForm = ({
   onAddTag,
   onRemoveTag,
   onCreateTag,
+  onGenerateTags,
 }: ImageDetailsFormProps) => {
   const [title, setTitle] = useState(initialTitle);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,8 +93,23 @@ export const ImageDetailsForm = ({
           onCreate={(name) => onCreateTag?.(name)}
         />
 
-        <Button type="button" className="w-auto self-start">
-          Generate Tags
+        <Button
+          type="button"
+          className="w-auto self-start"
+          disabled={isGenerating || !onGenerateTags}
+          onClick={async () => {
+            if (!onGenerateTags) return;
+            setIsGenerating(true);
+            try {
+              await onGenerateTags();
+            } catch (err) {
+              console.error("Failed to generate tags:", err);
+            } finally {
+              setIsGenerating(false);
+            }
+          }}
+        >
+          {isGenerating ? "Generating..." : "Generate Tags"}
         </Button>
 
         <footer className="flex justify-end gap-3">

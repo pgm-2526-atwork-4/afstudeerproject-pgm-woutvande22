@@ -142,3 +142,21 @@ export async function getAiTagSuggestions(
 
   return res.json();
 }
+
+export async function getAiTagsForPhoto(
+  accessToken: string,
+  photoId: number
+): Promise<TagSuggestion> {
+  const params = new URLSearchParams({ access_token: accessToken });
+
+  const res = await fetch(`${API_URL}/api/ai/tag-photo/${photoId}?${params}`, {
+    method: "POST",
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || "AI tagging failed");
+  }
+
+  return res.json();
+}

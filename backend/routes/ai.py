@@ -1,9 +1,11 @@
 import os
 import json
 import logging
+import httpx
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query
 from pydantic import BaseModel
 from google import genai
+from dependencies import get_supabase, safe_maybe_single
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +31,6 @@ async def tag_image(
     file: UploadFile = File(...),
 ):
     """Upload an image and get AI-generated tag suggestions and a description from Gemini."""
-    from dependencies import get_supabase
-
     # 1. Authenticate the user
     supabase = get_supabase()
     try:
@@ -75,9 +75,12 @@ async def tag_image(
         logger.error(f"Gemini API error: {e}")
         raise HTTPException(status_code=500, detail="Failed to analyze image with AI")
 
-    # 6. Parse Gemini response
-    raw = response.text.strip()
-    # Strip markdown code fences if present
+    return _parse_gemini_tags(response.text)
+
+
+def _parse_gemini_tags(raw_text: str) -> TagSuggestion:
+    """Parse the Gemini response text into a TagSuggestion."""
+    raw = raw_text.strip()
     if raw.startswith("```"):
         raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
         if raw.endswith("```"):
@@ -92,3 +95,70 @@ async def tag_image(
         raise HTTPException(status_code=500, detail="Failed to parse AI response")
 
     return TagSuggestion(tags=tags, description=description)
+
+
+@router.post("/tag-photo/{photo_id}", response_model=TagSuggestion)
+async def tag_existing_photo(
+    photo_id: int,
+    access_token: str = Query(...),
+):
+    """Generate AI tags for an existing photo by its ID."""
+    supabase = get_supabase()
+
+    # 1. Authenticate
+    try:
+        user_response = supabase.auth.get_user(access_token)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+    if not user_response.user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    if not client:
+        raise HTTPException(status_code=500, detail="Gemini API key not configured")
+
+    # 2. Fetch the photo record
+    result = safe_maybe_single(
+        supabase.table("photos")
+        .select("url")
+        .eq("id", photo_id)
+        .eq("user_id", user_response.user.id)
+    )
+
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Photo not found")
+
+    photo_url = result.data["url"] if isinstance(result.data, dict) else result.data[0]["url"]
+
+    # 3. Download the image
+    try:
+        async with httpx.AsyncClient() as http:
+            resp = await http.get(photo_url)
+            resp.raise_for_status()
+            content = resp.content
+            content_type = resp.headers.get("content-type", "image/jpeg").split(";")[0]
+    except Exception as e:
+        logger.error(f"Failed to download photo {photo_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to download image")
+
+    # 4. Send to Gemini
+    prompt = (
+        "Analyze this image. Return a JSON object with exactly two keys:\n"
+        '- "tags": an array of 5 relevant single-word or short tags (lowercase, English)\n'
+        '- "description": a short one-sentence description of the image\n'
+        "Return ONLY valid JSON, no markdown fences or extra text."
+    )
+
+    try:
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=[
+                prompt,
+                genai.types.Part.from_bytes(data=content, mime_type=content_type),
+            ],
+        )
+    except Exception as e:
+        logger.error(f"Gemini API error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to analyze image with AI")
+
+    return _parse_gemini_tags(response.text)
