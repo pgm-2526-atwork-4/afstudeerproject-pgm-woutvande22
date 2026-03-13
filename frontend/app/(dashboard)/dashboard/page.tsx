@@ -8,6 +8,7 @@ import { ImageGrid, type ImageItem } from "@/app/components/dashboard/images/Ima
 import { BulkActionBar } from "@/app/components/dashboard/images/BulkActionBar";
 import { GenerateCollectionButton } from "@/app/components/dashboard/collections/GenerateCollectionButton";
 import { fetchPhotos, reorderPhotos } from "@/app/lib/photos";
+import { fetchCollections, fetchCollectionPhotos } from "@/app/lib/collections";
 import { fetchBatchPhotoTags, fetchTags, type Tag } from "@/app/lib/tags";
 import { ImageGridSkeleton } from "@/app/components/dashboard/images/ImageCardSkeleton";
 
@@ -36,17 +37,30 @@ export default function DashboardPage() {
     }
 
     try {
-      const [photos, userTags] = await Promise.all([
+      const [photos, userTags, collections] = await Promise.all([
         fetchPhotos(token),
         fetchTags(token),
+        fetchCollections(token),
       ]);
 
       setTags(userTags);
+
+      const collectionPhotoSets = await Promise.all(
+        collections.map(async (collection) => {
+          const collectionPhotos = await fetchCollectionPhotos(token, collection.id);
+          return collectionPhotos.map((photo) => photo.id);
+        })
+      );
+
+      const photoIdsInCollections = new Set(
+        collectionPhotoSets.flat().map((photoId) => String(photoId))
+      );
 
       const items: ImageItem[] = photos.map((p) => ({
         id: String(p.id),
         url: p.url,
         label: p.title || `Photo ${p.id}`,
+        hasCollection: photoIdsInCollections.has(String(p.id)),
       }));
 
       // Fetch tags for all photos in one batch request

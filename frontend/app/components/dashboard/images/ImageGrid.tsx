@@ -14,6 +14,7 @@ export interface ImageItem {
   label?: string;
   url?: string;
   tags?: ImageTag[];
+  hasCollection?: boolean;
 }
 
 interface ImageGridProps {
@@ -30,7 +31,7 @@ export const ImageGrid = ({ images, collectionId, selectedIds, onToggleSelect, o
     items={images}
     onReorder={onReorder}
     strategy="grid"
-    className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 mt-6"
+    className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-3 mt-6"
     renderItem={(image) => (
       <SortableGridItem key={image.id} id={image.id}>
         <ImageCard
@@ -39,6 +40,7 @@ export const ImageGrid = ({ images, collectionId, selectedIds, onToggleSelect, o
           url={image.url}
           tags={image.tags}
           collectionId={collectionId}
+          hasCollection={image.hasCollection}
           selected={selectedIds?.has(image.id)}
           onSelect={onToggleSelect}
           onDelete={() => onDelete?.(image.id)}

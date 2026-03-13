@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { FolderOutlined } from "@mui/icons-material";
 import { DeleteButton } from "@/app/components/dashboard/images/DeleteButton";
 import { DeleteImageModal } from "@/app/components/dashboard/images/DeleteImageModal";
 import { deletePhoto } from "@/app/lib/photos";
@@ -19,14 +20,16 @@ interface ImageCardProps {
   url?: string;
   tags?: ImageTag[];
   collectionId?: string;
+  hasCollection?: boolean;
   selected?: boolean;
   onSelect?: (id: string) => void;
   onDelete?: () => void;
 }
 
-export const ImageCard = ({ id, label, url, tags = [], collectionId, selected, onSelect, onDelete }: ImageCardProps) => {
+export const ImageCard = ({ id, label, url, tags = [], collectionId, hasCollection, selected, onSelect, onDelete }: ImageCardProps) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const displayLabel = label || "Untitled";
 
   const handleDeleteClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -59,38 +62,46 @@ export const ImageCard = ({ id, label, url, tags = [], collectionId, selected, o
 
   return (
     <>
-      <Link 
-        href={collectionId ? `/dashboard/${id}?collection=${collectionId}` : `/dashboard/${id}`} 
-        className="group bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow block"
+      <Link
+        href={collectionId ? `/dashboard/${id}?collection=${collectionId}` : `/dashboard/${id}`}
+        className={`group block overflow-hidden rounded-3xl border bg-white transition-all duration-300 ${
+          selected
+            ? "border-sky-300 shadow-[0_20px_40px_-24px_rgba(14,165,233,0.55)] ring-2 ring-sky-200/80"
+            : "border-slate-200/80 shadow-[0_16px_32px_-24px_rgba(15,23,42,0.38)] hover:-translate-y-1 hover:border-sky-200 hover:shadow-[0_24px_48px_-24px_rgba(14,165,233,0.4)]"
+        }`}
       >
-        <div className="aspect-4/3 relative bg-gray-100">
+        <article className="flex h-full flex-col">
+        <div className="relative aspect-4/3 overflow-hidden bg-linear-to-br from-slate-100 via-slate-50 to-sky-50">
           {url ? (
             <Image
               src={url}
-              alt={label || "Uploaded photo"}
+              alt={displayLabel}
               fill
               unoptimized
-              className="object-cover"
+              className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
               sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
             />
           ) : (
-            <div className="w-full h-full bg-gray-200" />
+            <div className="flex h-full w-full items-center justify-center bg-linear-to-br from-slate-200 via-slate-100 to-sky-100 text-sm font-medium text-slate-500">
+              No preview
+            </div>
           )}
 
-          {/* Selection checkbox */}
+          <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-slate-950/55 via-slate-950/10 to-transparent opacity-80 transition-opacity duration-300 group-hover:opacity-100" />
+
           {onSelect && (
             <button
               type="button"
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); onSelect(id); }}
-              className={`absolute top-2 left-2 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all cursor-pointer ${
+              className={`absolute top-3 left-3 flex h-9 w-9 items-center justify-center rounded-2xl border backdrop-blur-sm transition-all duration-200 cursor-pointer ${
                 selected
-                  ? "bg-sky-400 border-sky-400 opacity-100"
-                  : "bg-white/90 border-gray-300 opacity-0 group-hover:opacity-100"
+                  ? "border-2 border-white bg-sky-400 text-white opacity-100 shadow-lg shadow-sky-400/30"
+                  : "border border-black/70 bg-white/88 text-slate-600 opacity-0 group-hover:opacity-100"
               }`}
               aria-label={selected ? "Deselect image" : "Select image"}
             >
               {selected && (
-                <svg className="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
               )}
@@ -98,28 +109,44 @@ export const ImageCard = ({ id, label, url, tags = [], collectionId, selected, o
           )}
 
           <DeleteButton onClick={handleDeleteClick} />
+
+          {hasCollection && (
+            <div className="absolute right-3 bottom-3 flex h-9 w-9 items-center justify-center rounded-2xl border border-white/15 bg-slate-950/55 text-white shadow-lg shadow-slate-950/20 backdrop-blur-sm">
+              <FolderOutlined sx={{ fontSize: 18 }} />
+            </div>
+          )}
         </div>
-        <div className="p-2">
-          {/* <p className="text-xs font-medium text-gray-900 truncate">{label || "Untitled"}</p> */}
+
+        <div className="flex flex-1 flex-col gap-2 p-3">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold tracking-tight text-slate-900">{displayLabel}</p>
+              <p className="mt-0.5 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">
+                {tags.length > 0 ? `${tags.length} tag${tags.length === 1 ? "" : "s"}` : "Untagged"}
+              </p>
+            </div>
+          </div>
+
           {tags.length > 0 && (
-            <div className="flex gap-1 mt-1.5 flex-wrap">
+            <div className="flex flex-wrap gap-1.5">
               {tags.slice(0, 3).map((tag) => (
                 <span
                   key={tag.name}
-                  className="px-1.5 py-0.5 text-[10px] rounded-full text-white truncate max-w-[80px]"
+                  className="max-w-20 truncate rounded-full px-2 py-1 text-[10px] font-medium text-white shadow-sm"
                   style={{ backgroundColor: tag.color_hex || "#6B7280" }}
                 >
                   {tag.name}
                 </span>
               ))}
               {tags.length > 3 && (
-                <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[10px] rounded-full">
+                <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-500">
                   +{tags.length - 3}
                 </span>
               )}
             </div>
           )}
         </div>
+        </article>
       </Link>
 
       <DeleteImageModal
