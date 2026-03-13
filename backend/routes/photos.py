@@ -420,8 +420,10 @@ def delete_photo(photo_id: int, access_token: str = Query(...)):
     except Exception as e:
         logger.error(f"Failed to delete file from storage: {e}")
 
-    # Delete junction records (collections_to_photos, photos_to_tags)
+    # Delete junction/related records that reference this photo.
+    # moodboard_items must be cleaned too, otherwise FK constraints can block photo deletion.
     try:
+        supabase.table("moodboard_items").delete().eq("photo_id", photo_id).execute()
         supabase.table("collections_to_photos").delete().eq("photo_id", photo_id).execute()
         supabase.table("photos_to_tags").delete().eq("photo_id", photo_id).execute()
     except Exception as e:

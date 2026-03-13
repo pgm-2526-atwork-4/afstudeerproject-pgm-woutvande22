@@ -195,3 +195,64 @@ export async function removePhotoFromCollection(
     throw new Error(errorMessage);
   }
 }
+
+export interface GenerateCollectionRequest {
+  prompt: string;
+  max_photos?: number;
+}
+
+export interface GenerateCollectionResponse {
+  collection_id: number;
+  collection_title: string;
+  selected_tags: string[];
+  matched_count: number;
+}
+
+export interface GenerateCollectionPreviewResponse {
+  suggested_title: string;
+  selected_tags: string[];
+  suggested_photo_ids: number[];
+  matched_count: number;
+}
+
+export async function previewCollectionWithAi(
+  accessToken: string,
+  data: GenerateCollectionRequest
+): Promise<GenerateCollectionPreviewResponse> {
+  const res = await fetch(
+    `${API_URL}/api/ai/preview-collection?access_token=${encodeURIComponent(accessToken)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }
+  );
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || "Failed to generate collection preview");
+  }
+
+  return res.json();
+}
+
+export async function generateCollectionWithAi(
+  accessToken: string,
+  data: GenerateCollectionRequest
+): Promise<GenerateCollectionResponse> {
+  const res = await fetch(
+    `${API_URL}/api/ai/generate-collection?access_token=${encodeURIComponent(accessToken)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }
+  );
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || "Failed to generate collection");
+  }
+
+  return res.json();
+}

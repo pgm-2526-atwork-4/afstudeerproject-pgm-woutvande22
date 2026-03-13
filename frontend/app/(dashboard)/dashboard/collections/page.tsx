@@ -13,6 +13,7 @@ import {
   type Collection,
 } from "@/app/lib/collections";
 import { CollectionGridSkeleton } from "@/app/components/dashboard/collections/CollectionCardSkeleton";
+import { COLLECTIONS_CHANGED } from "@/app/lib/events";
 import { GridViewOutlined, ViewListOutlined } from "@mui/icons-material";
 
 export default function CollectionsPage() {
@@ -50,6 +51,15 @@ export default function CollectionsPage() {
 
   useEffect(() => {
     loadCollections();
+  }, [loadCollections]);
+
+  useEffect(() => {
+    const handleCollectionsChanged = () => {
+      loadCollections();
+    };
+
+    window.addEventListener(COLLECTIONS_CHANGED, handleCollectionsChanged);
+    return () => window.removeEventListener(COLLECTIONS_CHANGED, handleCollectionsChanged);
   }, [loadCollections]);
 
   const handleCreated = (collection: Collection) => {
