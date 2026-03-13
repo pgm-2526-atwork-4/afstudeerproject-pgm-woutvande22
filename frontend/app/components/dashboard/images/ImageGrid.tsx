@@ -15,6 +15,7 @@ export interface ImageItem {
   url?: string;
   tags?: ImageTag[];
   hasCollection?: boolean;
+  collectionCount?: number;
 }
 
 interface ImageGridProps {
@@ -41,6 +42,7 @@ export const ImageGrid = ({ images, collectionId, selectedIds, onToggleSelect, o
           tags={image.tags}
           collectionId={collectionId}
           hasCollection={image.hasCollection}
+          collectionCount={image.collectionCount}
           selected={selectedIds?.has(image.id)}
           onSelect={onToggleSelect}
           onDelete={() => onDelete?.(image.id)}

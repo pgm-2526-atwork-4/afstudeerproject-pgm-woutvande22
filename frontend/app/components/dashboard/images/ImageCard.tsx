@@ -21,12 +21,13 @@ interface ImageCardProps {
   tags?: ImageTag[];
   collectionId?: string;
   hasCollection?: boolean;
+  collectionCount?: number;
   selected?: boolean;
   onSelect?: (id: string) => void;
   onDelete?: () => void;
 }
 
-export const ImageCard = ({ id, label, url, tags = [], collectionId, hasCollection, selected, onSelect, onDelete }: ImageCardProps) => {
+export const ImageCard = ({ id, label, url, tags = [], collectionId, hasCollection, collectionCount, selected, onSelect, onDelete }: ImageCardProps) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const displayLabel = label || "Untitled";
@@ -111,8 +112,9 @@ export const ImageCard = ({ id, label, url, tags = [], collectionId, hasCollecti
           <DeleteButton onClick={handleDeleteClick} />
 
           {hasCollection && (
-            <div className="absolute right-3 bottom-3 flex h-9 w-9 items-center justify-center rounded-2xl border border-white/15 bg-slate-950/55 text-white shadow-lg shadow-slate-950/20 backdrop-blur-sm">
+            <div className="absolute right-3 bottom-3 flex min-w-9 items-center justify-center gap-1 rounded-2xl border border-white/15 bg-slate-950/55 px-2 text-white shadow-lg shadow-slate-950/20 backdrop-blur-sm h-9">
               <FolderOutlined sx={{ fontSize: 18 }} />
+              <span className="text-xs font-semibold leading-none">{collectionCount ?? 1}</span>
             </div>
           )}
         </div>

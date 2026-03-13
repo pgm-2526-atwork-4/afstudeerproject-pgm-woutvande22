@@ -52,15 +52,21 @@ export default function DashboardPage() {
         })
       );
 
-      const photoIdsInCollections = new Set(
-        collectionPhotoSets.flat().map((photoId) => String(photoId))
-      );
+      const collectionCountByPhotoId = new Map<string, number>();
+
+      for (const photoIds of collectionPhotoSets) {
+        for (const photoId of photoIds) {
+          const key = String(photoId);
+          collectionCountByPhotoId.set(key, (collectionCountByPhotoId.get(key) ?? 0) + 1);
+        }
+      }
 
       const items: ImageItem[] = photos.map((p) => ({
         id: String(p.id),
         url: p.url,
         label: p.title || `Photo ${p.id}`,
-        hasCollection: photoIdsInCollections.has(String(p.id)),
+        hasCollection: collectionCountByPhotoId.has(String(p.id)),
+        collectionCount: collectionCountByPhotoId.get(String(p.id)) ?? 0,
       }));
 
       // Fetch tags for all photos in one batch request
