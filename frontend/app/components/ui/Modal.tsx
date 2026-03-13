@@ -8,7 +8,7 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
-  size?: "default" | "lg" | "xl";
+  size?: "default" | "lg" | "xl" | "2xl";
 }
 
 export const Modal = ({ open, onClose, title, children, size = "default" }: ModalProps) => {
@@ -45,7 +45,7 @@ export const Modal = ({ open, onClose, title, children, size = "default" }: Moda
       ref={dialogRef}
       onClick={handleBackdropClick}
       className={`bg-transparent p-0 m-auto w-full open:flex open:items-center open:justify-center ${
-        size === "xl" ? "max-w-4xl" : size === "lg" ? "max-w-2xl" : "max-w-lg"
+        size === "2xl" ? "max-w-6xl" : size === "xl" ? "max-w-4xl" : size === "lg" ? "max-w-2xl" : "max-w-lg"
       }`}
     >
       <div className="bg-white rounded-2xl shadow-xl w-full max-h-[90vh] overflow-y-auto">

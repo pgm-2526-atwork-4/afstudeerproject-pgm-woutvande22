@@ -160,15 +160,17 @@ export const UploadImageModal = ({
   );
 
   return (
-    <Modal open={open} onClose={handleClose} title="Upload Images">
+    <Modal open={open} onClose={handleClose} title="Upload Images" size="2xl">
       <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
-        <FilePicker
-          fileNames={uploadItems.map((item) => item.file.name)}
-          onFileSelect={handleFileSelect}
-        />
+        {uploadItems.length === 0 && (
+          <FilePicker
+            fileNames={uploadItems.map((item) => item.file.name)}
+            onFileSelect={handleFileSelect}
+          />
+        )}
 
         {uploadItems.length > 0 && (
-          <div className={`grid gap-3 ${uploadItems.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+          <div className={`grid gap-3 ${uploadItems.length === 1 ? "grid-cols-1" : "grid-cols-2 lg:grid-cols-3"}`}>
             {uploadItems.map((item) => {
               const isActive = activeUpload?.id === item.id;
 
@@ -186,7 +188,7 @@ export const UploadImageModal = ({
                   <ImagePreviewThumbnail
                     src={item.previewUrl}
                     alt={item.file.name}
-                    className={uploadItems.length > 1 ? "aspect-square" : ""}
+                    className={uploadItems.length > 1 ? "aspect-4/3 max-h-36" : "max-h-64"}
                   />
                   <div className="bg-white px-3 py-2">
                     <p className="truncate text-sm font-medium text-gray-800">{item.title || item.file.name}</p>
