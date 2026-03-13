@@ -3,6 +3,7 @@
 import { Button } from "@/app/components/ui/Button";
 import { FormInput } from "@/app/components/ui/FormInput";
 import { Modal } from "@/app/components/ui/Modal";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
 interface GenerateCollectionModalProps {
   open: boolean;
@@ -62,7 +63,10 @@ export const GenerateCollectionModal = ({
             Cancel
           </button>
           <Button type="button" disabled className="w-auto px-6 py-2.5 disabled:opacity-60 disabled:cursor-not-allowed">
-            Generate
+            <span className="inline-flex items-center gap-2">
+              <AutoAwesomeIcon sx={{ fontSize: 18 }} />
+              Generate
+            </span>
           </Button>
         </footer>
       </div>
