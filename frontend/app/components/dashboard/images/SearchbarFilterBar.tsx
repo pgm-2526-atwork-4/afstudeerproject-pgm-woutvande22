@@ -1,7 +1,8 @@
 "use client";
 
+import { FilterListOutlined } from "@mui/icons-material";
 import { TagFilterDropdown, TagSearchInput } from "@/app/components/ui/TagFilterDropdown";
-import { Switch } from "@/app/components/ui/Switch";
+import { FilterSelect } from "@/app/components/ui/FilterSelect";
 
 interface Tag {
   id: number;
@@ -9,14 +10,16 @@ interface Tag {
   color_hex: string;
 }
 
+export type CollectionFilter = "all" | "in-collections" | "not-in-collection";
+
 interface SearchFilterBarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   selectedTags: string[];
   onTagsChange: (tags: string[]) => void;
   tags: Tag[];
-  showOnlyUncollected: boolean;
-  onShowOnlyUncollectedChange: (value: boolean) => void;
+  collectionFilter: CollectionFilter;
+  onCollectionFilterChange: (value: CollectionFilter) => void;
 }
 
 export const SearchFilterBar = ({
@@ -25,9 +28,15 @@ export const SearchFilterBar = ({
   selectedTags,
   onTagsChange,
   tags,
-  showOnlyUncollected,
-  onShowOnlyUncollectedChange,
+  collectionFilter,
+  onCollectionFilterChange,
 }: SearchFilterBarProps) => {
+  const collectionFilterOptions = [
+    { value: "all", label: "All images" },
+    { value: "in-collections", label: "In collections" },
+    { value: "not-in-collection", label: "Not in collection" },
+  ];
+
   return (
     <div className="mt-6">
       <div className="flex flex-wrap items-center gap-4">
@@ -46,11 +55,12 @@ export const SearchFilterBar = ({
           tags={tags}
         />
 
-        <Switch
-          checked={showOnlyUncollected}
-          onChange={onShowOnlyUncollectedChange}
-          label="Not in collection"
+        <FilterSelect
+          value={collectionFilter}
+          onChange={(value) => onCollectionFilterChange(value as CollectionFilter)}
+          options={collectionFilterOptions}
           ariaLabel="Show only images not in a collection"
+          icon={<FilterListOutlined sx={{ fontSize: 18 }} />}
         />
       </div>
     </div>

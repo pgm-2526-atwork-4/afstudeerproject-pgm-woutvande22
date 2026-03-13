@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { PageHeader } from "@/app/components/dashboard/layout/PageHeader";
 import { UploadButton } from "@/app/components/dashboard/images/UploadButton";
-import { SearchFilterBar } from "@/app/components/dashboard/images/SearchbarFilterBar";
+import { SearchFilterBar, type CollectionFilter } from "@/app/components/dashboard/images/SearchbarFilterBar";
 import { ImageGrid, type ImageItem } from "@/app/components/dashboard/images/ImageGrid";
 import { BulkActionBar } from "@/app/components/dashboard/images/BulkActionBar";
 import { GenerateCollectionButton } from "@/app/components/dashboard/collections/GenerateCollectionButton";
@@ -18,7 +18,7 @@ export default function DashboardPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [showOnlyUncollected, setShowOnlyUncollected] = useState(false);
+  const [collectionFilter, setCollectionFilter] = useState<CollectionFilter>("all");
   const [tags, setTags] = useState<Tag[]>([]);
 
   const toggleSelect = useCallback((id: string) => {
@@ -136,10 +136,13 @@ export default function DashboardPage() {
         return matchesTitle || matchesTag;
       });
       const matchesTagFilter = selectedTags.length === 0 || selectedTags.every((st) => img.tags?.some((t) => t.name === st));
-      const matchesCollectionFilter = !showOnlyUncollected || !img.hasCollection;
+      const matchesCollectionFilter =
+        collectionFilter === "all" ||
+        (collectionFilter === "in-collections" && img.hasCollection) ||
+        (collectionFilter === "not-in-collection" && !img.hasCollection);
       return matchesSearch && matchesTagFilter && matchesCollectionFilter;
     });
-  }, [images, searchQuery, selectedTags, showOnlyUncollected]);
+  }, [images, searchQuery, selectedTags, collectionFilter]);
 
   return (
     <div className="pb-24">
@@ -158,8 +161,8 @@ export default function DashboardPage() {
           selectedTags={selectedTags}
           onTagsChange={setSelectedTags}
           tags={tags}
-          showOnlyUncollected={showOnlyUncollected}
-          onShowOnlyUncollectedChange={setShowOnlyUncollected}
+          collectionFilter={collectionFilter}
+          onCollectionFilterChange={setCollectionFilter}
         />
       </div>
 
