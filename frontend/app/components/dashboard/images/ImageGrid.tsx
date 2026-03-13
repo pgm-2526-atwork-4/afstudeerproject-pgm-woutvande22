@@ -32,7 +32,7 @@ export const ImageGrid = ({ images, collectionId, selectedIds, onToggleSelect, o
     items={images}
     onReorder={onReorder}
     strategy="grid"
-    className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-3 mt-6"
+    className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(240px,240px))] justify-center gap-3 sm:grid-cols-[repeat(auto-fill,minmax(285px,285px))] lg:grid-cols-[repeat(auto-fill,minmax(330px,330px))]"
     renderItem={(image) => (
       <SortableGridItem key={image.id} id={image.id}>
         <ImageCard

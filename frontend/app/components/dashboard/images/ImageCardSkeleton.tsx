@@ -15,7 +15,7 @@ export const ImageCardSkeleton = () => (
 );
 
 export const ImageGridSkeleton = ({ count = 12 }: { count?: number }) => (
-  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4 gap-3 mt-6">
+  <div className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(240px,240px))] justify-center gap-3 sm:grid-cols-[repeat(auto-fill,minmax(285px,285px))] lg:grid-cols-[repeat(auto-fill,minmax(330px,330px))]">
     {Array.from({ length: count }).map((_, i) => (
       <ImageCardSkeleton key={i} />
     ))}
