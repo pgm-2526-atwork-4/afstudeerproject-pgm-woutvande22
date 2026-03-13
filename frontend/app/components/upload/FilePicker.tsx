@@ -2,22 +2,23 @@ import { useState, useRef } from "react";
 import { FileUploadOutlined, ImageOutlined } from "@mui/icons-material";
 
 interface FilePickerProps {
-  fileName?: string;
-  onFileSelect?: (file: File) => void;
+  fileNames?: string[];
+  onFileSelect?: (files: File[]) => void;
   accept?: string;
 }
 
 export const FilePicker = ({
-  fileName,
+  fileNames = [],
   onFileSelect,
   accept = "image/jpeg,image/png,image/webp,image/gif",
 }: FilePickerProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const hasFiles = fileNames.length > 0;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) onFileSelect?.(file);
+    const files = Array.from(e.target.files ?? []);
+    if (files.length > 0) onFileSelect?.(files);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -37,9 +38,9 @@ export const FilePicker = ({
     e.stopPropagation();
     setIsDragging(false);
 
-    const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      onFileSelect?.(file);
+    const files = Array.from(e.dataTransfer.files ?? []).filter((file) => file.type.startsWith("image/"));
+    if (files.length > 0) {
+      onFileSelect?.(files);
     }
   };
 
@@ -49,9 +50,10 @@ export const FilePicker = ({
         ref={inputRef}
         type="file"
         accept={accept}
+        multiple
         onChange={handleChange}
         className="hidden"
-        aria-label="Choose an image file"
+        aria-label="Choose image files"
       />
       <div
         onClick={() => inputRef.current?.click()}
@@ -65,20 +67,25 @@ export const FilePicker = ({
         }`}
       >
         <div className={`p-3 rounded-full ${isDragging ? "bg-sky-100" : "bg-gray-100"}`}>
-          {fileName ? (
+          {hasFiles ? (
             <ImageOutlined className={isDragging ? "text-sky-500" : "text-gray-500"} sx={{ fontSize: 28 }} />
           ) : (
             <FileUploadOutlined className={isDragging ? "text-sky-500" : "text-gray-500"} sx={{ fontSize: 28 }} />
           )}
         </div>
-        {fileName ? (
-          <p className="text-sm font-medium text-gray-700">{fileName}</p>
+        {hasFiles ? (
+          <div className="text-center">
+            <p className="text-sm font-medium text-gray-700">
+              {fileNames.length === 1 ? fileNames[0] : `${fileNames.length} images selected`}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">Click or drop to replace the current selection</p>
+          </div>
         ) : (
           <>
             <p className="text-sm font-medium text-gray-700">
-              {isDragging ? "Drop your image here" : "Drag and drop an image"}
+              {isDragging ? "Drop your images here" : "Drag and drop images"}
             </p>
-            <p className="text-xs text-gray-500">or click to browse</p>
+            <p className="text-xs text-gray-500">or click to browse multiple files</p>
           </>
         )}
       </div>

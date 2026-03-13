@@ -8,6 +8,11 @@ import { FormInput } from "@/app/components/ui/FormInput";
 import { TagSelector, type SelectedTag } from "./TagSelector";
 import { uploadPhoto, getAiTagSuggestions } from "@/app/lib/photos";
 
+interface UploadPreview {
+  file: File;
+  previewUrl: string;
+}
+
 interface UploadImageModalProps {
   open: boolean;
   onClose: () => void;
@@ -21,8 +26,8 @@ export const UploadImageModal = ({
   onUploadSuccess,
   collectionId,
 }: UploadImageModalProps) => {
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<UploadPreview[]>([]);
   const [title, setTitle] = useState("");
   const [selectedTags, setSelectedTags] = useState<SelectedTag[]>([]);
   const [description, setDescription] = useState("");
@@ -31,38 +36,52 @@ export const UploadImageModal = ({
   const [error, setError] = useState<string | null>(null);
 
   const resetState = useCallback(() => {
-    setFile(null);
-    setPreviewUrl(null);
+    previews.forEach((preview) => URL.revokeObjectURL(preview.previewUrl));
+    setFiles([]);
+    setPreviews([]);
     setTitle("");
     setSelectedTags([]);
     setDescription("");
     setAiLoading(false);
     setUploading(false);
     setError(null);
-  }, []);
+  }, [previews]);
 
   const handleClose = useCallback(() => {
     resetState();
     onClose();
   }, [onClose, resetState]);
 
-  const handleFileSelect = useCallback((selectedFile: File) => {
-    setFile(selectedFile);
+  const handleFileSelect = useCallback((selectedFiles: File[]) => {
+    previews.forEach((preview) => URL.revokeObjectURL(preview.previewUrl));
+
+    setFiles(selectedFiles);
     setError(null);
 
-    // Set default title from filename (without extension)
-    const nameWithoutExt = selectedFile.name.replace(/\.[^/.]+$/, "");
-    setTitle(nameWithoutExt);
+    const nextPreviews = selectedFiles.map((selectedFile) => ({
+      file: selectedFile,
+      previewUrl: URL.createObjectURL(selectedFile),
+    }));
+    setPreviews(nextPreviews);
 
-    // Create a local preview URL
-    const url = URL.createObjectURL(selectedFile);
-    setPreviewUrl(url);
+    const primaryFile = selectedFiles[0];
+    if (!primaryFile) {
+      setTitle("");
+      setSelectedTags([]);
+      setDescription("");
+      return;
+    }
 
-    // Call AI tagging
+    // Use the filename as title only for single-image uploads.
+    const nameWithoutExt = primaryFile.name.replace(/\.[^/.]+$/, "");
+    setTitle(selectedFiles.length === 1 ? nameWithoutExt : "");
+    setSelectedTags([]);
+    setDescription("");
+
     const token = localStorage.getItem("access_token");
-    if (token) {
+    if (token && selectedFiles.length === 1) {
       setAiLoading(true);
-      getAiTagSuggestions(token, selectedFile)
+      getAiTagSuggestions(token, primaryFile)
         .then((result) => {
           setSelectedTags(
             result.tags.map((name) => ({ name, color_hex: "#6B7280" }))
@@ -75,15 +94,17 @@ export const UploadImageModal = ({
           console.error("AI tagging failed:", err);
         })
         .finally(() => setAiLoading(false));
+    } else {
+      setAiLoading(false);
     }
-  }, []);
+  }, [previews]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
 
-      if (!file) {
-        setError("Please select a file first.");
+      if (files.length === 0) {
+        setError("Please select at least one file first.");
         return;
       }
 
@@ -98,32 +119,70 @@ export const UploadImageModal = ({
 
       try {
         const tagNames = selectedTags.map((t) => t.name);
-        await uploadPhoto(token, file, collectionId, title || undefined, tagNames.length > 0 ? tagNames : undefined, description || undefined);
+        const uploads = files.map((file) => {
+          const derivedTitle = files.length === 1
+            ? title || undefined
+            : file.name.replace(/\.[^/.]+$/, "") || undefined;
+
+          return uploadPhoto(
+            token,
+            file,
+            collectionId,
+            derivedTitle,
+            tagNames.length > 0 ? tagNames : undefined,
+            description || undefined
+          );
+        });
+
+        const results = await Promise.allSettled(uploads);
+        const failures = results.filter((result) => result.status === "rejected");
+
+        if (failures.length === results.length) {
+          const firstFailure = failures[0];
+          if (firstFailure?.status === "rejected") {
+            throw firstFailure.reason;
+          }
+          throw new Error("Upload failed");
+        }
+
         resetState();
         onClose();
         onUploadSuccess?.();
+
+        if (failures.length > 0) {
+          console.error("Some uploads failed:", failures);
+        }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Upload failed");
       } finally {
         setUploading(false);
       }
     },
-    [file, collectionId, title, description, selectedTags, onClose, onUploadSuccess, resetState]
+    [files, collectionId, title, description, selectedTags, onClose, onUploadSuccess, resetState]
   );
 
   return (
-    <Modal open={open} onClose={handleClose} title="Upload Image">
+    <Modal open={open} onClose={handleClose} title="Upload Images">
       <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
         <FilePicker
-          fileName={file?.name}
+          fileNames={files.map((file) => file.name)}
           onFileSelect={handleFileSelect}
         />
 
-        {previewUrl && (
-          <ImagePreviewThumbnail src={previewUrl} alt={file?.name} />
+        {previews.length > 0 && (
+          <div className={`grid gap-3 ${previews.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+            {previews.map((preview) => (
+              <ImagePreviewThumbnail
+                key={`${preview.file.name}-${preview.file.lastModified}`}
+                src={preview.previewUrl}
+                alt={preview.file.name}
+                className={previews.length > 1 ? "aspect-square" : ""}
+              />
+            ))}
+          </div>
         )}
 
-        {file && (
+        {files.length === 1 && (
           <FormInput
             id="title"
             label="Title"
@@ -133,7 +192,13 @@ export const UploadImageModal = ({
           />
         )}
 
-        {file && (
+        {files.length > 1 && (
+          <p className="text-sm text-gray-500 bg-gray-50 px-3 py-2 rounded-lg">
+            Titles will default to each filename. Tags and description below will be applied to all selected images.
+          </p>
+        )}
+
+        {files.length > 0 && (
           <div className="flex flex-col gap-1.5">
             <label htmlFor="description" className="text-sm font-medium text-gray-700">
               Description {aiLoading && <span className="text-sky-500 text-xs">(AI is analyzing...)</span>}
@@ -149,7 +214,7 @@ export const UploadImageModal = ({
           </div>
         )}
 
-        {file && (
+        {files.length > 0 && (
           <TagSelector
             selectedTags={selectedTags}
             onChange={setSelectedTags}
@@ -158,7 +223,7 @@ export const UploadImageModal = ({
 
         {aiLoading && (
           <p className="text-sm text-sky-600 bg-sky-50 px-3 py-2 rounded-lg">
-            AI is generating tags and description…
+            AI is generating tags and description for your image…
           </p>
         )}
 
@@ -179,10 +244,10 @@ export const UploadImageModal = ({
           </button>
           <button
             type="submit"
-            disabled={!file || uploading}
+            disabled={files.length === 0 || uploading}
             className="px-5 py-2.5 bg-sky-400 hover:bg-sky-500 text-white text-sm font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {uploading ? "Uploading..." : "Upload"}
+            {uploading ? "Uploading..." : `Upload ${files.length > 1 ? `${files.length} Images` : "Image"}`}
           </button>
         </footer>
       </form>
