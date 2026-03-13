@@ -19,6 +19,7 @@ import {
   fetchCollectionsForPhoto,
   type Collection,
 } from "@/app/lib/collections";
+import { dispatchSidebarCountsChanged } from "@/app/lib/events";
 
 const DEFAULT_COLOR = "#3B82F6";
 
@@ -212,6 +213,7 @@ export default function ImageDetailPage() {
       setAllTags((prev) => [...prev, newTag]);
       await addTagToPhoto(token, photo.id, newTag.id);
       setPhotoTags((prev) => [...prev, newTag]);
+      dispatchSidebarCountsChanged();
     } catch (err) {
       console.error("Failed to create tag:", err);
     }
@@ -231,19 +233,52 @@ export default function ImageDetailPage() {
       );
     }
 
-    for (const tagName of result.tags) {
-      const existing = allTags.find((t) => t.name.toLowerCase() === tagName.toLowerCase());
-      if (existing) {
-        // Skip if already on the photo
-        if (photoTags.some((t) => t.id === existing.id)) continue;
-        await addTagToPhoto(token, photo.id, existing.id);
-        setPhotoTags((prev) => [...prev, existing]);
-      } else {
-        const newTag = await createTag(token, tagName, DEFAULT_COLOR);
-        setAllTags((prev) => [...prev, newTag]);
-        await addTagToPhoto(token, photo.id, newTag.id);
-        setPhotoTags((prev) => [...prev, newTag]);
+    const normalizedNames = Array.from(
+      new Set(
+        result.tags
+          .map((name) => name.trim().toLowerCase())
+          .filter((name) => name.length > 0)
+      )
+    );
+
+    const knownTagsByName = new Map(allTags.map((tag) => [tag.name.toLowerCase(), tag]));
+    const photoTagIds = new Set(photoTags.map((tag) => tag.id));
+    const createdTags: Tag[] = [];
+    const newlyLinkedTags: Tag[] = [];
+
+    for (const normalizedName of normalizedNames) {
+      let tag = knownTagsByName.get(normalizedName);
+
+      if (!tag) {
+        tag = await createTag(token, normalizedName, DEFAULT_COLOR);
+        knownTagsByName.set(normalizedName, tag);
+        createdTags.push(tag);
       }
+
+      if (photoTagIds.has(tag.id)) {
+        continue;
+      }
+
+      await addTagToPhoto(token, photo.id, tag.id);
+      photoTagIds.add(tag.id);
+      newlyLinkedTags.push(tag);
+    }
+
+    if (createdTags.length > 0) {
+      setAllTags((prev) => {
+        const mergedById = new Map(prev.map((tag) => [tag.id, tag]));
+        createdTags.forEach((tag) => mergedById.set(tag.id, tag));
+        return Array.from(mergedById.values());
+      });
+      dispatchSidebarCountsChanged();
+    }
+
+    if (newlyLinkedTags.length > 0) {
+      setPhotoTags((prev) => {
+        const mergedById = new Map(prev.map((tag) => [tag.id, tag]));
+        newlyLinkedTags.forEach((tag) => mergedById.set(tag.id, tag));
+        return Array.from(mergedById.values());
+      });
     }
   }, [photo, allTags, photoTags]);
 

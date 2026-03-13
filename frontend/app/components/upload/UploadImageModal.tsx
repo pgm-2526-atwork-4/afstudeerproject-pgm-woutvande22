@@ -7,6 +7,7 @@ import { ImagePreviewThumbnail } from "./ImagePreviewThumbnail";
 import { FormInput } from "@/app/components/ui/FormInput";
 import { TagSelector, type SelectedTag } from "./TagSelector";
 import { uploadPhoto, getAiTagSuggestions } from "@/app/lib/photos";
+import { dispatchSidebarCountsChanged } from "@/app/lib/events";
 
 interface UploadItem {
   id: string;
@@ -109,6 +110,11 @@ export const UploadImageModal = ({
         return;
       }
 
+      if (hasAiLoading) {
+        setError("Please wait for AI tags to finish generating before uploading.");
+        return;
+      }
+
       const token = localStorage.getItem("access_token");
       if (!token) {
         setError("You must be logged in to upload.");
@@ -146,6 +152,7 @@ export const UploadImageModal = ({
         resetState();
         onClose();
         onUploadSuccess?.();
+        dispatchSidebarCountsChanged();
 
         if (failures.length > 0) {
           console.error("Some uploads failed:", failures);
@@ -156,7 +163,7 @@ export const UploadImageModal = ({
         setUploading(false);
       }
     },
-    [uploadItems, collectionId, onClose, onUploadSuccess, resetState]
+    [uploadItems, hasAiLoading, collectionId, onClose, onUploadSuccess, resetState]
   );
 
   return (
@@ -264,7 +271,7 @@ export const UploadImageModal = ({
           </button>
           <button
             type="submit"
-            disabled={uploadItems.length === 0 || uploading}
+            disabled={uploadItems.length === 0 || uploading || hasAiLoading}
             className="px-5 py-2.5 bg-sky-400 hover:bg-sky-500 text-white text-sm font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {uploading ? "Uploading..." : `Upload ${uploadItems.length > 1 ? `${uploadItems.length} Images` : "Image"}`}

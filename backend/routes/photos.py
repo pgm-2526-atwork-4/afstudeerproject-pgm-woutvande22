@@ -219,12 +219,27 @@ async def upload_photo(
                         tag_id = existing_tag.data["id"] if isinstance(existing_tag.data, dict) else existing_tag.data[0]["id"]
                     else:
                         # Create the tag with a default color
-                        new_tag = (
-                            supabase.table("tags")
-                            .insert({"name": name, "color_hex": "#6B7280", "user_id": user.id})
-                            .execute()
-                        )
-                        tag_id = new_tag.data[0]["id"]
+                        try:
+                            new_tag = (
+                                supabase.table("tags")
+                                .insert({"name": name, "color_hex": "#6B7280", "user_id": user.id})
+                                .execute()
+                            )
+                            tag_id = new_tag.data[0]["id"]
+                        except Exception as e:
+                            # A same-user duplicate can occur under concurrency.
+                            if getattr(e, "code", None) == "23505" or "23505" in str(e):
+                                existing_after_conflict = safe_maybe_single(
+                                    supabase.table("tags")
+                                    .select("id")
+                                    .eq("name", name)
+                                    .eq("user_id", user.id)
+                                )
+                                if not existing_after_conflict.data:
+                                    raise
+                                tag_id = existing_after_conflict.data["id"] if isinstance(existing_after_conflict.data, dict) else existing_after_conflict.data[0]["id"]
+                            else:
+                                raise
 
                     # Link tag to photo (ignore if already linked)
                     try:
@@ -232,8 +247,11 @@ async def upload_photo(
                             "photo_id": photo["id"],
                             "tag_id": tag_id,
                         }).execute()
-                    except Exception:
-                        pass  # already linked
+                    except Exception as e:
+                        # Duplicate links are harmless, but log any DB errors for easier debugging.
+                        logger.warning(
+                            f"Failed to link tag {tag_id} to photo {photo['id']}: {e}"
+                        )
         except json.JSONDecodeError:
             logger.warning(f"Invalid tag_names JSON: {tag_names}")
         except Exception as e:

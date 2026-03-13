@@ -7,6 +7,7 @@ import { TagRow } from "@/app/components/dashboard/tags/TagRow";
 import { TagForm } from "@/app/components/dashboard/tags/TagForm";
 import { Modal } from "@/app/components/ui/Modal";
 import { fetchTags, createTag, updateTag, deleteTag } from "@/app/lib/tags";
+import { dispatchSidebarCountsChanged } from "@/app/lib/events";
 
 interface TagItem {
   id: string;
@@ -80,6 +81,7 @@ export const TagsPage = () => {
         name: newTag.name,
         color: newTag.color_hex,
       }]);
+      dispatchSidebarCountsChanged();
       setCreating(false);
     } catch (err) {
       console.error("Failed to create tag:", err);
@@ -110,6 +112,7 @@ export const TagsPage = () => {
     try {
       await deleteTag(token, Number(id));
       setTags((prev) => prev.filter((t) => t.id !== id));
+      dispatchSidebarCountsChanged();
       setDeleteTarget(null);
     } catch (err) {
       console.error("Failed to delete tag:", err);

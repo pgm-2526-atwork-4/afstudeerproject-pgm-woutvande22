@@ -8,6 +8,7 @@ import { DeleteButton } from "@/app/components/dashboard/images/DeleteButton";
 import { DeleteImageModal } from "@/app/components/dashboard/images/DeleteImageModal";
 import { deletePhoto } from "@/app/lib/photos";
 import { removePhotoFromCollection } from "@/app/lib/collections";
+import { dispatchSidebarCountsChanged } from "@/app/lib/events";
 
 interface ImageTag {
   name: string;
@@ -53,6 +54,7 @@ export const ImageCard = ({ id, label, url, tags = [], collectionId, hasCollecti
       }
 
       setShowDeleteModal(false);
+      dispatchSidebarCountsChanged();
       onDelete?.();
     } catch (error) {
       console.error("Failed to delete photo:", error);

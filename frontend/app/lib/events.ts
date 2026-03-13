@@ -6,7 +6,12 @@
  */
 
 export const COLLECTIONS_CHANGED = "collections-changed";
+export const SIDEBAR_COUNTS_CHANGED = "sidebar-counts-changed";
 
 export function dispatchCollectionsChanged() {
   window.dispatchEvent(new Event(COLLECTIONS_CHANGED));
+}
+
+export function dispatchSidebarCountsChanged() {
+  window.dispatchEvent(new Event(SIDEBAR_COUNTS_CHANGED));
 }

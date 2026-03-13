@@ -89,13 +89,14 @@ def create_tag(access_token: str = Query(...), body: CreateTagRequest = Body(...
         # Check if tag with same name already exists for this user
         existing = safe_maybe_single(
             supabase.table("tags")
-            .select("id")
+            .select("id, name, color_hex")
             .eq("name", tag_name)
             .eq("user_id", user.id)
         )
 
         if existing.data:
-            raise HTTPException(status_code=400, detail="Tag with this name already exists")
+            # Idempotent behavior: if the tag already exists, return it.
+            return TagResponse(**existing.data)
 
         # Insert new tag
         result = (
@@ -119,8 +120,25 @@ def create_tag(access_token: str = Query(...), body: CreateTagRequest = Body(...
     except HTTPException:
         raise
     except Exception as e:
+        # Handle unique-constraint races gracefully: another request may have created
+        # the same tag between the existence check and insert.
+        if getattr(e, "code", None) == "23505" or "23505" in str(e):
+            existing_after_conflict = safe_maybe_single(
+                supabase.table("tags")
+                .select("id, name, color_hex")
+                .eq("name", tag_name)
+                .eq("user_id", user.id)
+            )
+            if existing_after_conflict.data:
+                return TagResponse(**existing_after_conflict.data)
+
+            raise HTTPException(
+                status_code=409,
+                detail="Tag with this name already exists",
+            )
+
         logger.error(f"Failed to create tag: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to create tag: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to create tag")
 
 
 # Get a single tag
@@ -272,7 +290,7 @@ def add_tag_to_photo(photo_id: int, tag_id: int, access_token: str = Query(...))
         if not photo.data:
             raise HTTPException(status_code=404, detail="Photo not found")
 
-        # Verify tag belongs to user
+        # Verify tag belongs to user.
         tag = safe_maybe_single(
             supabase.table("tags")
             .select("id")

@@ -10,6 +10,7 @@ import { AddToCollectionModal } from "@/app/components/dashboard/collections/Add
 import { Modal } from "@/app/components/ui/Modal";
 import { deletePhoto } from "@/app/lib/photos";
 import { removePhotoFromCollection } from "@/app/lib/collections";
+import { dispatchSidebarCountsChanged } from "@/app/lib/events";
 
 interface BulkActionBarProps {
   selectedIds: Set<string>;
@@ -58,6 +59,7 @@ export const BulkActionBar = ({
       );
 
       setShowCollectionModal(false);
+      dispatchSidebarCountsChanged();
       onClearSelection();
       onAddToCollectionDone?.();
     } catch (err) {
@@ -89,6 +91,7 @@ export const BulkActionBar = ({
         );
       }
 
+      dispatchSidebarCountsChanged();
       onDeleteDone(ids);
       onClearSelection();
       setShowDeleteConfirm(false);

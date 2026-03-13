@@ -19,7 +19,7 @@ import { useAuth } from "@/app/context/AuthContext";
 import { fetchPhotos } from "@/app/lib/photos";
 import { fetchCollections } from "@/app/lib/collections";
 import { fetchTags } from "@/app/lib/tags";
-import { COLLECTIONS_CHANGED } from "@/app/lib/events";
+import { COLLECTIONS_CHANGED, SIDEBAR_COUNTS_CHANGED } from "@/app/lib/events";
 
 const navItems = [
   { label: "All Images", href: "/dashboard", icon: <ImageOutlined />, countKey: "photos" as const },
@@ -37,12 +37,21 @@ export const Sidebar = () => {
   const [counts, setCounts] = useState<{ photos?: number; collections?: number; tags?: number }>({});
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Re-fetch counts whenever collections change anywhere in the app
+  // Re-fetch counts whenever counts-relevant data changes anywhere in the app.
   useEffect(() => {
     const handler = () => setRefreshKey((k) => k + 1);
     window.addEventListener(COLLECTIONS_CHANGED, handler);
-    return () => window.removeEventListener(COLLECTIONS_CHANGED, handler);
+    window.addEventListener(SIDEBAR_COUNTS_CHANGED, handler);
+    return () => {
+      window.removeEventListener(COLLECTIONS_CHANGED, handler);
+      window.removeEventListener(SIDEBAR_COUNTS_CHANGED, handler);
+    };
   }, []);
+
+  // Also refresh when navigating between dashboard routes.
+  useEffect(() => {
+    setRefreshKey((k) => k + 1);
+  }, [pathname]);
 
   // Fetch counts for sidebar badges
   useEffect(() => {
