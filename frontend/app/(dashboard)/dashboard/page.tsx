@@ -18,6 +18,7 @@ export default function DashboardPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [showOnlyUncollected, setShowOnlyUncollected] = useState(false);
   const [tags, setTags] = useState<Tag[]>([]);
 
   const toggleSelect = useCallback((id: string) => {
@@ -135,9 +136,10 @@ export default function DashboardPage() {
         return matchesTitle || matchesTag;
       });
       const matchesTagFilter = selectedTags.length === 0 || selectedTags.every((st) => img.tags?.some((t) => t.name === st));
-      return matchesSearch && matchesTagFilter;
+      const matchesCollectionFilter = !showOnlyUncollected || !img.hasCollection;
+      return matchesSearch && matchesTagFilter && matchesCollectionFilter;
     });
-  }, [images, searchQuery, selectedTags]);
+  }, [images, searchQuery, selectedTags, showOnlyUncollected]);
 
   return (
     <div className="pb-24">
@@ -156,6 +158,8 @@ export default function DashboardPage() {
           selectedTags={selectedTags}
           onTagsChange={setSelectedTags}
           tags={tags}
+          showOnlyUncollected={showOnlyUncollected}
+          onShowOnlyUncollectedChange={setShowOnlyUncollected}
         />
       </div>
 
