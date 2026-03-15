@@ -15,11 +15,8 @@ interface SelectedTag {
 interface TagSelectorProps {
   selectedTags: SelectedTag[];
   onChange: (tags: SelectedTag[]) => void;
-                className="inline-flex items-center gap-1 pl-1.5 pr-1 py-0.5 text-xs rounded-full"
-                style={{
-                  backgroundColor: tag.color_hex || DEFAULT_COLOR,
-                  color: getReadableTextColor(tag.color_hex || DEFAULT_COLOR),
-                }}
+}
+
 const DEFAULT_COLOR = "#6B7280";
 
 export const TagSelector = ({ selectedTags, onChange }: TagSelectorProps) => {
@@ -105,8 +102,11 @@ export const TagSelector = ({ selectedTags, onChange }: TagSelectorProps) => {
           {selectedTags.map((tag) => (
             <li key={tag.name}>
               <span
-                className="inline-flex items-center gap-1 pl-1.5 pr-1 py-0.5 text-xs rounded-full text-white"
-                style={{ backgroundColor: tag.color_hex || DEFAULT_COLOR }}
+                className="inline-flex items-center gap-1 pl-1.5 pr-1 py-0.5 text-xs rounded-full"
+                style={{
+                  backgroundColor: tag.color_hex || DEFAULT_COLOR,
+                  color: getReadableTextColor(tag.color_hex || DEFAULT_COLOR),
+                }}
               >
                 {tag.name}
                 <button
