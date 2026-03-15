@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FolderOutlined, CalendarTodayOutlined, StraightenOutlined, ImageOutlined, AutoAwesomeOutlined } from "@mui/icons-material";
 import { FormInput } from "@/app/components/ui/FormInput";
 import { Button } from "@/app/components/ui/Button";
+import { LoadingCircle } from "@/app/components/ui/LoadingCircle";
 import { TagList } from "../tags/TagList";
 import type { Tag } from "@/app/lib/tags";
 import type { Collection } from "@/app/lib/collections";
@@ -97,7 +98,7 @@ export const ImageDetailsForm = ({
 
         <Button
           type="button"
-          className="w-auto self-start"
+          className="w-auto self-start flex items-center justify-center gap-2"
           disabled={isGenerating || !onGenerateTags}
           onClick={async () => {
             if (!onGenerateTags) return;
@@ -111,7 +112,8 @@ export const ImageDetailsForm = ({
             }
           }}
         >
-          {isGenerating ? "Generating..." : "Generate Tags"}
+          {isGenerating && <LoadingCircle size="sm" className="text-white" label="Generating tags" />}
+          <span>{isGenerating ? "Generating..." : "Generate Tags"}</span>
         </Button>
 
         <footer className="flex justify-end gap-3">

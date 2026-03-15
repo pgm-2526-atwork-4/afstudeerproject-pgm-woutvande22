@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Button } from "@/app/components/ui/Button";
 import { FormInput } from "@/app/components/ui/FormInput";
 import { Modal } from "@/app/components/ui/Modal";
+import { LoadingCircle } from "@/app/components/ui/LoadingCircle";
 import {
   addPhotoToCollection,
   createCollection,
@@ -241,18 +242,19 @@ export const GenerateCollectionModal = ({
               (!reviewStep && !prompt.trim()) ||
               (reviewStep && selectedPhotoIds.size === 0)
             }
-            className="w-auto px-6 py-2.5 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-auto px-6 py-2.5 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <span className="inline-flex items-center gap-2">
-              <AutoAwesomeIcon sx={{ fontSize: 18 }} />
-              {!reviewStep
-                ? loadingPreview
-                  ? "Generating..."
-                  : "Generate"
-                : creating
-                  ? "Creating..."
-                  : "Create Collection"}
-            </span>
+            {(loadingPreview || creating) ? (
+              <>
+                <LoadingCircle size="sm" className="text-white" label={reviewStep ? "Creating collection" : "Generating collection"} />
+                <span>{reviewStep ? "Creating..." : "Generating..."}</span>
+              </>
+            ) : (
+              <>
+                <AutoAwesomeIcon sx={{ fontSize: 18 }} />
+                <span>{reviewStep ? "Create Collection" : "Generate"}</span>
+              </>
+            )}
           </Button>
         </footer>
       </section>

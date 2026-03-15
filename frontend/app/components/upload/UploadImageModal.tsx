@@ -6,6 +6,7 @@ import { FilePicker } from "./FilePicker";
 import { ImagePreviewThumbnail } from "./ImagePreviewThumbnail";
 import { FormInput } from "@/app/components/ui/FormInput";
 import { TagSelector, type SelectedTag } from "./TagSelector";
+import { LoadingCircle } from "@/app/components/ui/LoadingCircle";
 import { uploadPhoto, getAiTagSuggestions } from "@/app/lib/photos";
 import { dispatchSidebarCountsChanged } from "@/app/lib/events";
 
@@ -199,8 +200,11 @@ export const UploadImageModal = ({
                   />
                   <div className="bg-white px-3 py-2">
                     <p className="truncate text-sm font-medium text-gray-800">{item.title || item.file.name}</p>
-                    <p className="mt-1 text-xs text-gray-500">
-                      {item.aiLoading ? "Analyzing..." : `${item.selectedTags.length} tag${item.selectedTags.length === 1 ? "" : "s"}`}
+                    <p className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
+                      {item.aiLoading && <LoadingCircle size="sm" className="text-sky-500" label="Analyzing image" />}
+                      <span>
+                        {item.aiLoading ? "Analyzing..." : `${item.selectedTags.length} tag${item.selectedTags.length === 1 ? "" : "s"}`}
+                      </span>
                     </p>
                   </div>
                 </button>
@@ -249,9 +253,10 @@ export const UploadImageModal = ({
         )}
 
         {hasAiLoading && (
-          <p className="text-sm text-sky-600 bg-sky-50 px-3 py-2 rounded-lg">
-            AI is generating tags and descriptions for your selected images…
-          </p>
+          <div className="flex items-center gap-2 text-sm text-sky-600 bg-sky-50 px-3 py-2 rounded-lg">
+            <LoadingCircle size="sm" className="text-sky-600" label="Generating AI tags and descriptions" />
+            <p>AI is generating tags and descriptions for your selected images...</p>
+          </div>
         )}
 
         {error && (
@@ -272,9 +277,10 @@ export const UploadImageModal = ({
           <button
             type="submit"
             disabled={uploadItems.length === 0 || uploading || hasAiLoading}
-            className="px-5 py-2.5 bg-sky-400 hover:bg-sky-500 text-white text-sm font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center justify-center gap-2 px-5 py-2.5 bg-sky-400 hover:bg-sky-500 text-white text-sm font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {uploading ? "Uploading..." : `Upload ${uploadItems.length > 1 ? `${uploadItems.length} Images` : "Image"}`}
+            {uploading && <LoadingCircle size="sm" className="text-white" label="Uploading images" />}
+            <span>{uploading ? "Uploading..." : `Upload ${uploadItems.length > 1 ? `${uploadItems.length} Images` : "Image"}`}</span>
           </button>
         </footer>
       </form>

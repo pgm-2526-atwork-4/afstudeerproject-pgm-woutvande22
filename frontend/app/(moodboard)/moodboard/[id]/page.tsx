@@ -26,6 +26,8 @@ export default function MoodboardPage() {
   const [zoom, setZoom] = useState(1);
   const [bgColor, setBgColor] = useState("#EDEDED");
   const [photoTags, setPhotoTags] = useState<Record<string, Tag[]>>({});
+  const [autosaveStatus, setAutosaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const latestAutosaveRun = useRef(0);
 
   // Track whether the initial load is done (to prevent auto-save on first render)
   const initialLoadDone = useRef(false);
@@ -239,7 +241,13 @@ export default function MoodboardPage() {
 
     const token = localStorage.getItem("access_token");
     const numericId = Number(collectionId);
-    if (!token || isNaN(numericId)) return;
+    if (!token || isNaN(numericId)) {
+      setAutosaveStatus("idle");
+      return;
+    }
+
+    const autosaveRunId = ++latestAutosaveRun.current;
+    setAutosaveStatus("saving");
 
     const timeout = setTimeout(() => {
       const itemRows: SaveMoodboardItem[] = items.map((item) => ({
@@ -260,7 +268,18 @@ export default function MoodboardPage() {
       saveMoodboard(token, numericId, {
         background_color: bgColor,
         items: itemRows,
-      }).catch((err) => console.error("Auto-save failed:", err));
+      })
+        .then(() => {
+          if (latestAutosaveRun.current === autosaveRunId) {
+            setAutosaveStatus("saved");
+          }
+        })
+        .catch((err) => {
+          console.error("Auto-save failed:", err);
+          if (latestAutosaveRun.current === autosaveRunId) {
+            setAutosaveStatus("idle");
+          }
+        });
     }, 1000);
 
     return () => clearTimeout(timeout);
@@ -479,6 +498,7 @@ export default function MoodboardPage() {
         onBgColorChange={setBgColor}
         onExport={handleExport}
         exporting={exporting}
+        autosaveStatus={autosaveStatus}
         onReset={handleReset}
       />
 

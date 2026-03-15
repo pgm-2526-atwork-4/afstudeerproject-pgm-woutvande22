@@ -6,8 +6,10 @@ import {
   ZoomOutOutlined,
   FileDownloadOutlined,
   RestartAltOutlined,
+  CheckCircleOutlined,
 } from "@mui/icons-material";
 import { BackButton } from "@/app/components/ui/BackButton";
+import { LoadingCircle } from "@/app/components/ui/LoadingCircle";
 import { ExportModal, ExportFormat } from "@/app/components/moodboard/ExportModal";
 
 interface MoodboardHeaderProps {
@@ -21,6 +23,7 @@ interface MoodboardHeaderProps {
   onBgColorChange: (color: string) => void;
   onExport: (format: ExportFormat) => void;
   exporting: boolean;
+  autosaveStatus: "idle" | "saving" | "saved";
   onReset: () => void;
 }
 
@@ -35,6 +38,7 @@ export function MoodboardHeader({
   onBgColorChange,
   onExport,
   exporting,
+  autosaveStatus,
   onReset,
 }: MoodboardHeaderProps) {
   const [hexInput, setHexInput] = useState(bgColor.toUpperCase());
@@ -68,6 +72,23 @@ export function MoodboardHeader({
       </div>
 
       <div className="flex items-center gap-1">
+        {autosaveStatus !== "idle" && (
+          <div
+            className={`mr-2 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+              autosaveStatus === "saving"
+                ? "bg-sky-50 text-sky-700"
+                : "bg-emerald-50 text-emerald-700"
+            }`}
+          >
+            {autosaveStatus === "saving" ? (
+              <LoadingCircle size="sm" className="text-sky-600" label="Autosaving moodboard" />
+            ) : (
+              <CheckCircleOutlined sx={{ fontSize: 14 }} className="text-emerald-600" />
+            )}
+            <span>{autosaveStatus === "saving" ? "Autosaving..." : "Saved"}</span>
+          </div>
+        )}
+
         <button
           type="button"
           onClick={onZoomOut}
@@ -119,7 +140,7 @@ export function MoodboardHeader({
               }
             }}
             maxLength={7}
-            className="w-[4.5rem] px-1.5 py-1 border border-gray-200 rounded text-xs text-gray-700 font-mono uppercase"
+            className="w-18 px-1.5 py-1 border border-gray-200 rounded text-xs text-gray-700 font-mono uppercase"
           />
         </label>
 
