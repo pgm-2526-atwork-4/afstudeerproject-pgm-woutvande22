@@ -75,14 +75,14 @@ export const Sidebar = () => {
   useEffect(() => {
     document.documentElement.style.setProperty(
       "--sidebar-w",
-      collapsed ? "4rem" : "14rem"
+      collapsed ? "5rem" : "14rem"
     );
   }, [collapsed]);
 
   return (
     <aside
       className={`${
-        collapsed ? "w-16" : "w-56"
+        collapsed ? "w-20" : "w-56"
       } bg-white border-r border-gray-200 p-4 flex flex-col h-screen sticky top-0 transition-all duration-300`}
     >
       <div className={`mb-8 flex items-center ${collapsed ? "justify-center" : "justify-between"}`}>
