@@ -41,6 +41,57 @@ class UpdatePhotoRequest(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
 
+
+def _get_current_user(supabase, access_token: str):
+    """Authenticate the user and apply the auth token to the PostgREST client."""
+    try:
+        user_response = supabase.auth.get_user(access_token)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+    user = user_response.user
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    supabase.postgrest.auth(access_token)
+    return user
+
+
+
+def _reserve_storage(supabase, user_id: str, file_size_mb: float) -> None:
+    """Reserve storage atomically via the database RPC before upload starts."""
+    try:
+        result = supabase.rpc(
+            "reserve_storage",
+            {"p_user_id": user_id, "p_size_mb": file_size_mb},
+        ).execute()
+    except Exception as e:
+        logger.error(f"Failed to reserve storage for user {user_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to reserve storage")
+
+    reserved = result.data
+    if isinstance(reserved, list):
+        reserved = reserved[0] if reserved else False
+
+    if not reserved:
+        raise HTTPException(
+            status_code=409,
+            detail="Storage limit exceeded. Upgrade your plan for more space.",
+        )
+
+
+
+def _release_storage(supabase, user_id: str, file_size_mb: float) -> None:
+    """Release previously reserved storage when a later upload step fails."""
+    try:
+        supabase.rpc(
+            "release_storage",
+            {"p_user_id": user_id, "p_size_mb": file_size_mb},
+        ).execute()
+    except Exception as e:
+        logger.error(f"Failed to release storage for user {user_id}: {e}")
+
+
 # upload
 
 @router.post("/upload", response_model=PhotoResponse, status_code=201)
@@ -54,25 +105,16 @@ async def upload_photo(
 ):
     """Upload a photo to Supabase Storage and create a record in the photos table."""
     supabase = get_supabase()
+    user = _get_current_user(supabase, access_token)
 
-    # 1. Authenticate the user
-    try:
-        user_response = supabase.auth.get_user(access_token)
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=str(e))
-
-    user = user_response.user
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-    # 2. Validate file type
+    # 1. Validate file type
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(
             status_code=400,
             detail=f"File type '{file.content_type}' not allowed. Use: {', '.join(ALLOWED_TYPES)}"
         )
 
-    # 3. Read file content and check size
+    # 2. Read file content and check size
     content = await file.read()
     file_size_mb = round(len(content) / (1024 * 1024), 2)
 
@@ -82,35 +124,10 @@ async def upload_photo(
             detail=f"File too large ({file_size_mb} MB). Max is {MAX_FILE_SIZE_MB} MB."
         )
 
-    # 4. Check user storage limit
-    profile = safe_maybe_single(
-        supabase.table("users")
-        .select("current_storage_mb, subscription_id")
-        .eq("id", user.id)
-    )
+    # 3. Reserve storage atomically before uploading the file
+    _reserve_storage(supabase, user.id, file_size_mb)
 
-    if profile.data:
-        current_storage = profile.data.get("current_storage_mb", 0)
-        sub_id = profile.data.get("subscription_id")
-
-        # Get storage limit from subscriptions table
-        if sub_id:
-            sub = safe_maybe_single(
-                supabase.table("subscriptions")
-                .select("storage_limit_mb")
-                .eq("id", sub_id)
-            )
-            limit = sub.data.get("storage_limit_mb", 10240) if sub.data else 10240
-        else:
-            limit = 10240  # default ~10 GB
-
-        if current_storage + file_size_mb > limit:
-            raise HTTPException(
-                status_code=400,
-                detail="Storage limit exceeded. Upgrade your plan for more space."
-            )
-
-    # 5. Upload to Supabase Storage
+    # 4. Upload to Supabase Storage
     file_ext = file.filename.split(".")[-1] if file.filename else "jpg"
     storage_path = f"{user.id}/{uuid.uuid4()}.{file_ext}"
 
@@ -121,13 +138,14 @@ async def upload_photo(
             file_options={"content-type": file.content_type},
         )
     except Exception as e:
+        _release_storage(supabase, user.id, file_size_mb)
         logger.error(f"Storage upload failed: {e}")
         raise HTTPException(status_code=500, detail="Failed to upload file to storage")
 
-    # 6. Get the public URL
+    # 5. Get the public URL
     public_url = supabase.storage.from_(BUCKET_NAME).get_public_url(storage_path)
 
-    # 7. Insert record into photos table
+    # 6. Insert record into photos table
     # Get the next order_id for this user
     try:
         last_photo = (
@@ -156,23 +174,17 @@ async def upload_photo(
             .execute()
         )
     except Exception as e:
-        # Clean up the uploaded file if DB insert fails
-        supabase.storage.from_(BUCKET_NAME).remove([storage_path])
+        try:
+            supabase.storage.from_(BUCKET_NAME).remove([storage_path])
+        except Exception as cleanup_error:
+            logger.error(f"Failed to clean up uploaded file after DB error: {cleanup_error}")
+        _release_storage(supabase, user.id, file_size_mb)
         logger.error(f"Failed to create photo record: {e}")
         raise HTTPException(status_code=500, detail="Failed to save photo record")
 
     photo = photo_record.data[0]
 
-    # 8. Update user storage
-    try:
-        supabase.table("users").update({
-            "current_storage_mb": (profile.data.get("current_storage_mb", 0) + file_size_mb)
-            if profile.data else file_size_mb
-        }).eq("id", user.id).execute()
-    except Exception as e:
-        logger.error(f"Failed to update user storage: {e}")
-
-    # 9. If collection_id provided, link photo to collection
+    # 7. If collection_id provided, link photo to collection
     if collection_id:
         try:
             # Get the next order_id for this collection
@@ -405,15 +417,7 @@ def update_photo(photo_id: int, access_token: str = Query(...), body: UpdatePhot
 def delete_photo(photo_id: int, access_token: str = Query(...)):
     """Delete a photo and remove it from storage."""
     supabase = get_supabase()
-
-    try:
-        user_response = supabase.auth.get_user(access_token)
-    except Exception as e:
-        raise HTTPException(status_code=401, detail=str(e))
-
-    user = user_response.user
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    user = _get_current_user(supabase, access_token)
 
     # Fetch the photo to get the URL for storage deletion
     result = safe_maybe_single(
@@ -427,7 +431,7 @@ def delete_photo(photo_id: int, access_token: str = Query(...)):
         raise HTTPException(status_code=404, detail="Photo not found")
 
     photo = result.data
-    file_size_mb = photo.get("file_size_mb", 0)
+    file_size_mb = float(photo.get("file_size_mb", 0) or 0)
 
     # Extract storage path from URL
     url: str = photo["url"]
@@ -449,20 +453,6 @@ def delete_photo(photo_id: int, access_token: str = Query(...)):
 
     # Delete the photo record
     supabase.table("photos").delete().eq("id", photo_id).execute()
-
-    # Update user storage
-    try:
-        profile = safe_maybe_single(
-            supabase.table("users")
-            .select("current_storage_mb")
-            .eq("id", user.id)
-        )
-        if profile.data:
-            new_storage = max(0, profile.data.get("current_storage_mb", 0) - file_size_mb)
-            supabase.table("users").update({
-                "current_storage_mb": new_storage
-            }).eq("id", user.id).execute()
-    except Exception as e:
-        logger.error(f"Failed to update user storage: {e}")
+    _release_storage(supabase, user.id, file_size_mb)
 
     return None
