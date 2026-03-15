@@ -28,7 +28,7 @@ export const FilterSelect = ({ value, onChange, options, ariaLabel, icon }: Filt
         value={value}
         onChange={(event) => onChange(event.target.value)}
         aria-label={ariaLabel}
-        className={`w-full appearance-none rounded-lg border border-gray-300 bg-white py-2.5 pr-10 text-sm text-gray-700 shadow-sm transition-colors focus:border-transparent focus:ring-2 focus:ring-sky-400 ${icon ? "pl-10" : "pl-4"}`}
+        className={`w-full appearance-none rounded-lg border border-gray-300 bg-white py-2.5 pr-10 text-sm text-gray-700 transition-colors focus:border-transparent focus:ring-2 focus:ring-sky-400 ${icon ? "pl-10" : "pl-4"}`}
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
