@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { CloseOutlined } from "@mui/icons-material";
 import { fetchTags, type Tag } from "@/app/lib/tags";
+import { getReadableTextColor } from "@/app/lib/color";
 
 interface SelectedTag {
   /** Set for existing tags; undefined for brand-new ones */
@@ -14,8 +15,11 @@ interface SelectedTag {
 interface TagSelectorProps {
   selectedTags: SelectedTag[];
   onChange: (tags: SelectedTag[]) => void;
-}
-
+                className="inline-flex items-center gap-1 pl-1.5 pr-1 py-0.5 text-xs rounded-full"
+                style={{
+                  backgroundColor: tag.color_hex || DEFAULT_COLOR,
+                  color: getReadableTextColor(tag.color_hex || DEFAULT_COLOR),
+                }}
 const DEFAULT_COLOR = "#6B7280";
 
 export const TagSelector = ({ selectedTags, onChange }: TagSelectorProps) => {

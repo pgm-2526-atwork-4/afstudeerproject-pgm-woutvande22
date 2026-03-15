@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import { CloseOutlined, SearchOutlined } from "@mui/icons-material";
+import { getReadableTextColor } from "@/app/lib/color";
 
 interface TagOption {
   id: number;
@@ -49,7 +50,7 @@ export const TagFilterDropdown = ({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent cursor-pointer flex items-center gap-2 min-w-[120px]"
+        className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent cursor-pointer flex items-center gap-2 min-w-30"
       >
         {selectedTags.length === 0
           ? "All tags"
@@ -129,8 +130,11 @@ export const SelectedTagChips = ({
         return (
           <span
             key={name}
-            className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium text-white"
-            style={{ backgroundColor: tag?.color_hex ?? "#6B7280" }}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium"
+            style={{
+              backgroundColor: tag?.color_hex ?? "#6B7280",
+              color: getReadableTextColor(tag?.color_hex ?? "#6B7280"),
+            }}
           >
             {name}
             <CloseOutlined
@@ -196,7 +200,7 @@ export const TagSearchInput = ({
 
   return (
     <div
-      className="flex items-center gap-1.5 flex-wrap flex-1 min-h-[42px] px-3 py-1.5 border border-gray-300 rounded-lg bg-white focus-within:ring-2 focus-within:ring-sky-400 focus-within:border-transparent transition-shadow cursor-text"
+      className="flex items-center gap-1.5 flex-wrap flex-1 min-h-10.5 px-3 py-1.5 border border-gray-300 rounded-lg bg-white focus-within:ring-2 focus-within:ring-sky-400 focus-within:border-transparent transition-shadow cursor-text"
       onClick={() => inputRef.current?.focus()}
     >
       <SearchOutlined className="text-gray-400 shrink-0" sx={{ fontSize: 18 }} />
@@ -205,8 +209,11 @@ export const TagSearchInput = ({
         return (
           <span
             key={name}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium text-white shrink-0"
-            style={{ backgroundColor: tag?.color_hex ?? "#6B7280" }}
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium shrink-0"
+            style={{
+              backgroundColor: tag?.color_hex ?? "#6B7280",
+              color: getReadableTextColor(tag?.color_hex ?? "#6B7280"),
+            }}
           >
             {name}
             <CloseOutlined
@@ -227,7 +234,7 @@ export const TagSearchInput = ({
         value={searchQuery}
         onChange={(e) => onSearchChange(e.target.value)}
         onKeyDown={handleKeyDown}
-        className="flex-1 min-w-[80px] py-1 text-sm text-gray-900 placeholder:text-gray-400 outline-none bg-transparent"
+        className="flex-1 min-w-20 py-1 text-sm text-gray-900 placeholder:text-gray-400 outline-none bg-transparent"
       />
     </div>
   );

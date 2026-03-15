@@ -12,6 +12,7 @@ import { SortableItem } from "../../dnd/SortableItem";
 import { deletePhoto } from "@/app/lib/photos";
 import { removePhotoFromCollection } from "@/app/lib/collections";
 import { dispatchSidebarCountsChanged } from "@/app/lib/events";
+import { getReadableTextColor } from "@/app/lib/color";
 import type { ImageViewMode } from "./ImageViewModeToggle";
 
 export interface ImageTag {
@@ -240,8 +241,11 @@ export const ImageGrid = ({
                         {image.tags.slice(0, 3).map((tag) => (
                           <span
                             key={tag.name}
-                            className="max-w-20 truncate rounded-full px-2 py-1 text-[10px] font-medium text-white shadow-sm"
-                            style={{ backgroundColor: tag.color_hex || "#6B7280" }}
+                            className="max-w-20 truncate rounded-full px-2 py-1 text-[10px] font-medium shadow-sm"
+                            style={{
+                              backgroundColor: tag.color_hex || "#6B7280",
+                              color: getReadableTextColor(tag.color_hex || "#6B7280"),
+                            }}
                           >
                             {tag.name}
                           </span>

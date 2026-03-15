@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { getReadableTextColor } from "@/app/lib/color";
 import type { Tag } from "@/app/lib/tags";
 
 interface TagListProps {
@@ -87,8 +88,11 @@ export const TagList = ({ tags, allTags, disabled, onAdd, onRemove, onCreate }: 
         {tags.map((tag) => (
           <span
             key={tag.id}
-            className="inline-flex items-center gap-1 px-3 py-1 text-white text-xs rounded-full"
-            style={{ backgroundColor: tag.color_hex || "#6B7280" }}
+                className="inline-flex items-center gap-1 px-3 py-1 text-xs rounded-full"
+                style={{
+                  backgroundColor: tag.color_hex || "#6B7280",
+                  color: getReadableTextColor(tag.color_hex || "#6B7280"),
+                }}
           >
             {tag.name}
             <button
@@ -96,7 +100,7 @@ export const TagList = ({ tags, allTags, disabled, onAdd, onRemove, onCreate }: 
               disabled={disabled}
               aria-label={`Remove ${tag.name} tag`}
               onClick={() => onRemove(tag.id)}
-              className="ml-0.5 hover:text-gray-200 transition-colors cursor-pointer disabled:opacity-50"
+                  className="ml-0.5 hover:opacity-70 transition-opacity cursor-pointer disabled:opacity-50"
             >
               &times;
             </button>
