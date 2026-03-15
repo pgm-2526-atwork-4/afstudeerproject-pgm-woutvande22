@@ -19,12 +19,12 @@ const options: Array<{
   {
     value: "cards",
     label: "Cards",
-    icon: <DashboardOutlined sx={{ fontSize: 18 }} />,
+    icon: <GridViewOutlined sx={{ fontSize: 18 }} />,
   },
   {
     value: "grid",
     label: "Grid",
-    icon: <GridViewOutlined sx={{ fontSize: 18 }} />,
+    icon: <DashboardOutlined sx={{ fontSize: 18 }} />,
   },
   {
     value: "list",
@@ -35,7 +35,7 @@ const options: Array<{
 
 export const ImageViewModeToggle = ({ mode, onChange }: ImageViewModeToggleProps) => (
   <div
-    className="inline-flex items-center rounded-xl border border-gray-200 bg-white p-1"
+    className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-1 py-1"
     role="tablist"
     aria-label="Image view mode"
   >
@@ -47,7 +47,7 @@ export const ImageViewModeToggle = ({ mode, onChange }: ImageViewModeToggleProps
           key={option.value}
           type="button"
           onClick={() => onChange(option.value)}
-          className={`flex items-center justify-center rounded-lg px-2 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
+          className={`flex h-8.5 w-8.5 items-center justify-center rounded-md transition-colors cursor-pointer ${
             active
               ? "bg-sky-100 text-sky-700"
               : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
