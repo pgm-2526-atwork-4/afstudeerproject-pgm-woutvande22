@@ -8,6 +8,7 @@ import { DeleteButton } from "./DeleteButton";
 import { DeleteImageModal } from "./DeleteImageModal";
 import { SortableList } from "../../dnd/SortableList";
 import { SortableGridItem } from "../../dnd/SortableGridItem";
+import { SortableItem } from "../../dnd/SortableItem";
 import { deletePhoto } from "@/app/lib/photos";
 import { removePhotoFromCollection } from "@/app/lib/collections";
 import { dispatchSidebarCountsChanged } from "@/app/lib/events";
@@ -87,7 +88,7 @@ const GridImageTile = ({
 
   return (
     <>
-      <article className="mb-3 break-inside-avoid">
+      <article>
         <Link
           href={href}
           className={`group relative block overflow-hidden rounded-2xl border bg-white ${
@@ -153,35 +154,44 @@ export const ImageGrid = ({
 
   if (viewMode === "grid") {
     return (
-      <section className="mt-6 columns-2 gap-3 sm:columns-3 lg:columns-4 xl:columns-5">
-        {images.map((image) => {
+      <SortableList
+        items={images}
+        onReorder={onReorder}
+        strategy="grid"
+        className="mt-6 columns-2 gap-3 sm:columns-3 lg:columns-4 xl:columns-5"
+        renderItem={(image) => {
           const selected = selectedIds?.has(image.id) ?? false;
 
           return (
-            <GridImageTile
-              key={image.id}
-              image={image}
-              selected={selected}
-              href={hrefFor(image.id)}
-              collectionId={collectionId}
-              onToggleSelect={onToggleSelect}
-              onDelete={onDelete}
-            />
+            <SortableGridItem key={image.id} id={image.id} className="mb-3 break-inside-avoid">
+              <GridImageTile
+                image={image}
+                selected={selected}
+                href={hrefFor(image.id)}
+                collectionId={collectionId}
+                onToggleSelect={onToggleSelect}
+                onDelete={onDelete}
+              />
+            </SortableGridItem>
           );
-        })}
-      </section>
+        }}
+      />
     );
   }
 
   if (viewMode === "list") {
     return (
       <section className="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white">
-        <ul className="divide-y divide-gray-100">
-          {images.map((image) => {
+        <SortableList
+          items={images}
+          onReorder={onReorder}
+          strategy="vertical"
+          className="divide-y divide-gray-100"
+          renderItem={(image) => {
             const selected = selectedIds?.has(image.id) ?? false;
 
             return (
-              <li key={image.id}>
+              <SortableItem key={image.id} id={image.id}>
                 <Link
                   href={hrefFor(image.id)}
                   className={`flex items-center gap-3 px-4 py-3 transition-colors ${
@@ -251,10 +261,10 @@ export const ImageGrid = ({
                     </p>
                   )}
                 </Link>
-              </li>
+              </SortableItem>
             );
-          })}
-        </ul>
+          }}
+        />
       </section>
     );
   }
