@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { FilterListOutlined } from "@mui/icons-material";
 import { TagFilterDropdown, TagSearchInput } from "@/app/components/ui/TagFilterDropdown";
 import { FilterSelect } from "@/app/components/ui/FilterSelect";
@@ -20,6 +21,7 @@ interface SearchFilterBarProps {
   tags: Tag[];
   collectionFilter: CollectionFilter;
   onCollectionFilterChange: (value: CollectionFilter) => void;
+  trailingControl?: ReactNode;
 }
 
 export const SearchFilterBar = ({
@@ -30,6 +32,7 @@ export const SearchFilterBar = ({
   tags,
   collectionFilter,
   onCollectionFilterChange,
+  trailingControl,
 }: SearchFilterBarProps) => {
   const collectionFilterOptions = [
     { value: "all", label: "All images" },
@@ -62,6 +65,8 @@ export const SearchFilterBar = ({
           ariaLabel="Show only images not in a collection"
           icon={<FilterListOutlined sx={{ fontSize: 18 }} />}
         />
+
+        {trailingControl}
       </div>
     </div>
   );

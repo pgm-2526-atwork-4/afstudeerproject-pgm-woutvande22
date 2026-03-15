@@ -5,6 +5,7 @@ import { PageHeader } from "@/app/components/dashboard/layout/PageHeader";
 import { UploadButton } from "@/app/components/dashboard/images/UploadButton";
 import { SearchFilterBar, type CollectionFilter } from "@/app/components/dashboard/images/SearchbarFilterBar";
 import { ImageGrid, type ImageItem } from "@/app/components/dashboard/images/ImageGrid";
+import { ImageViewModeToggle, type ImageViewMode } from "@/app/components/dashboard/images/ImageViewModeToggle";
 import { BulkActionBar } from "@/app/components/dashboard/images/BulkActionBar";
 import { GenerateCollectionButton } from "@/app/components/dashboard/collections/GenerateCollectionButton";
 import { fetchPhotos, reorderPhotos } from "@/app/lib/photos";
@@ -20,6 +21,7 @@ export default function DashboardPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [collectionFilter, setCollectionFilter] = useState<CollectionFilter>("all");
   const [tags, setTags] = useState<Tag[]>([]);
+  const [viewMode, setViewMode] = useState<ImageViewMode>("cards");
 
   const toggleSelect = useCallback((id: string) => {
     setSelectedIds((prev) => {
@@ -163,6 +165,7 @@ export default function DashboardPage() {
           tags={tags}
           collectionFilter={collectionFilter}
           onCollectionFilterChange={setCollectionFilter}
+          trailingControl={<ImageViewModeToggle mode={viewMode} onChange={setViewMode} />}
         />
       </div>
 
@@ -176,6 +179,7 @@ export default function DashboardPage() {
         ) : (
           <ImageGrid
             images={filteredImages}
+            viewMode={viewMode}
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}
             onReorder={handleReorder}

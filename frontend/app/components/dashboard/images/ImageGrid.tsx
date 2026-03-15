@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
+import { CheckOutlined } from "@mui/icons-material";
 import { ImageCard } from "./ImageCard";
 import { SortableList } from "../../dnd/SortableList";
 import { SortableGridItem } from "../../dnd/SortableGridItem";
+import type { ImageViewMode } from "./ImageViewModeToggle";
 
 export interface ImageTag {
   name: string;
@@ -21,33 +24,165 @@ export interface ImageItem {
 interface ImageGridProps {
   images: ImageItem[];
   collectionId?: string;
+  viewMode?: ImageViewMode;
   selectedIds?: Set<string>;
   onToggleSelect?: (id: string) => void;
   onReorder: (images: ImageItem[]) => void;
   onDelete?: (id: string) => void;
 }
 
-export const ImageGrid = ({ images, collectionId, selectedIds, onToggleSelect, onReorder, onDelete }: ImageGridProps) => (
-  <SortableList
-    items={images}
-    onReorder={onReorder}
-    strategy="grid"
-    className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(180px,180px))] justify-center gap-3 sm:grid-cols-[repeat(auto-fill,minmax(220px,220px))] lg:grid-cols-[repeat(auto-fill,minmax(260px,260px))]"
-    renderItem={(image) => (
-      <SortableGridItem key={image.id} id={image.id}>
-        <ImageCard
-          id={image.id}
-          label={image.label}
-          url={image.url}
-          tags={image.tags}
-          collectionId={collectionId}
-          hasCollection={image.hasCollection}
-          collectionCount={image.collectionCount}
-          selected={selectedIds?.has(image.id)}
-          onSelect={onToggleSelect}
-          onDelete={() => onDelete?.(image.id)}
-        />
-      </SortableGridItem>
-    )}
-  />
-);
+export const ImageGrid = ({
+  images,
+  collectionId,
+  viewMode = "cards",
+  selectedIds,
+  onToggleSelect,
+  onReorder,
+  onDelete,
+}: ImageGridProps) => {
+  const hrefFor = (id: string) => (collectionId ? `/dashboard/${id}?collection=${collectionId}` : `/dashboard/${id}`);
+
+  if (viewMode === "grid") {
+    return (
+      <section className="mt-6 columns-2 gap-3 sm:columns-3 lg:columns-4 xl:columns-5">
+        {images.map((image) => {
+          const selected = selectedIds?.has(image.id) ?? false;
+
+          return (
+            <article key={image.id} className="mb-3 break-inside-avoid">
+              <Link
+                href={hrefFor(image.id)}
+                className={`group relative block overflow-hidden rounded-2xl border bg-white ${
+                  selected ? "border-sky-300 ring-2 ring-sky-200" : "border-slate-200/80"
+                }`}
+              >
+                {image.url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={image.url}
+                    alt={image.label || `Photo ${image.id}`}
+                    className="h-auto w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="h-36 w-full bg-slate-200" />
+                )}
+
+                {onToggleSelect && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onToggleSelect(image.id);
+                    }}
+                    className={`absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-xl border text-white transition-colors cursor-pointer ${
+                      selected
+                        ? "border-white bg-sky-500"
+                        : "border-black/50 bg-white/85 text-slate-600"
+                    }`}
+                    aria-label={selected ? "Deselect image" : "Select image"}
+                  >
+                    {selected && <CheckOutlined sx={{ fontSize: 16 }} />}
+                  </button>
+                )}
+              </Link>
+            </article>
+          );
+        })}
+      </section>
+    );
+  }
+
+  if (viewMode === "list") {
+    return (
+      <section className="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+        <ul className="divide-y divide-gray-100">
+          {images.map((image) => {
+            const selected = selectedIds?.has(image.id) ?? false;
+
+            return (
+              <li key={image.id}>
+                <Link
+                  href={hrefFor(image.id)}
+                  className={`flex items-center gap-3 px-4 py-3 transition-colors ${
+                    selected ? "bg-sky-50" : "hover:bg-gray-50"
+                  }`}
+                >
+                  {onToggleSelect && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        onToggleSelect(image.id);
+                      }}
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-colors cursor-pointer ${
+                        selected
+                          ? "border-sky-500 bg-sky-500 text-white"
+                          : "border-gray-300 text-gray-400 hover:border-gray-400"
+                      }`}
+                      aria-label={selected ? "Deselect image" : "Select image"}
+                    >
+                      {selected && <CheckOutlined sx={{ fontSize: 16 }} />}
+                    </button>
+                  )}
+
+                  <div className="h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                    {image.url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={image.url}
+                        alt={image.label || `Photo ${image.id}`}
+                        className="h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : null}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-slate-800">{image.label || `Photo ${image.id}`}</p>
+                    <p className="text-xs text-slate-500">
+                      {image.tags?.length ? `${image.tags.length} tag${image.tags.length === 1 ? "" : "s"}` : "Untagged"}
+                    </p>
+                  </div>
+
+                  {image.hasCollection && (
+                    <p className="shrink-0 text-xs font-medium text-slate-500">
+                      {image.collectionCount ?? 1} collection{(image.collectionCount ?? 1) === 1 ? "" : "s"}
+                    </p>
+                  )}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+    );
+  }
+
+  return (
+    <SortableList
+      items={images}
+      onReorder={onReorder}
+      strategy="grid"
+      className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(180px,180px))] justify-center gap-3 sm:grid-cols-[repeat(auto-fill,minmax(220px,220px))] lg:grid-cols-[repeat(auto-fill,minmax(260px,260px))]"
+      renderItem={(image) => (
+        <SortableGridItem key={image.id} id={image.id}>
+          <ImageCard
+            id={image.id}
+            label={image.label}
+            url={image.url}
+            tags={image.tags}
+            collectionId={collectionId}
+            hasCollection={image.hasCollection}
+            collectionCount={image.collectionCount}
+            selected={selectedIds?.has(image.id)}
+            onSelect={onToggleSelect}
+            onDelete={() => onDelete?.(image.id)}
+          />
+        </SortableGridItem>
+      )}
+    />
+  );
+};

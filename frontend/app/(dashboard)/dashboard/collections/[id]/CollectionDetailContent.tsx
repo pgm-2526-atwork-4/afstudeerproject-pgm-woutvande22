@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { CollectionHeader } from "@/app/components/dashboard/collections/CollectionHeader";
 import { ImageGrid, type ImageItem } from "@/app/components/dashboard/images/ImageGrid";
+import { ImageViewModeToggle, type ImageViewMode } from "@/app/components/dashboard/images/ImageViewModeToggle";
 import { BulkActionBar } from "@/app/components/dashboard/images/BulkActionBar";
 import { UploadImageModal } from "@/app/components/upload/UploadImageModal";
 import { AddExistingImagesModal } from "@/app/components/dashboard/collections/AddExistingImagesModal";
@@ -32,6 +33,7 @@ export function CollectionDetailContent({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
+  const [viewMode, setViewMode] = useState<ImageViewMode>("cards");
 
   const numericId = Number(collectionId);
 
@@ -179,6 +181,8 @@ export function CollectionDetailContent({
             <AddPhotoAlternateOutlined sx={{ fontSize: 18 }} />
             Upload Image
           </button>
+
+          <ImageViewModeToggle mode={viewMode} onChange={setViewMode} />
         </div>
 
       </div>
@@ -219,6 +223,7 @@ export function CollectionDetailContent({
           <ImageGrid
             images={filteredImages}
             collectionId={collectionId}
+            viewMode={viewMode}
             selectedIds={selectedIds}
             onToggleSelect={toggleSelect}
             onReorder={setImages}
