@@ -45,6 +45,27 @@ class GenerateCollectionResponse(BaseModel):
     matched_count: int
 
 
+def _build_visual_reference_prompt() -> str:
+    """Return a prompt optimized for visual-reference workflows (photo/design/art)."""
+    return (
+        "You are tagging an image for a visual reference library used by photographers, designers, and artists.\n"
+        "Return a JSON object with exactly two keys:\n"
+        '- "tags": an array of 8 concise tags (1-3 words each, lowercase, English)\n'
+        '- "description": one short sentence describing the image in visual-reference terms\n'
+        "Tagging rules:\n"
+        "- prioritize tags that help visual search and moodboard curation\n"
+        "- focus tags on these dimensions (when clearly visible): subject, style, color, pose, type of design\n"
+        "- include at least one tag for subject and one for style whenever possible\n"
+        "- include color information as specific color or palette tags (for example: monochrome, pastel palette, red and black)\n"
+        "- for pose, use posture/action-oriented tags when a person or character is present\n"
+        "- for type of design, use category tags like editorial, poster, branding, ui, packaging, interior, fashion, automotive\n"
+        "- avoid vague tags like 'nice', 'cool', 'beautiful', 'image', 'photo', 'art'\n"
+        "- avoid duplicate or near-duplicate tags\n"
+        "- only include tags strongly supported by visible content\n"
+        "Return ONLY valid JSON, with no markdown fences or extra text."
+    )
+
+
 @router.post("/tag-image", response_model=TagSuggestion)
 async def tag_image(
     access_token: str = Query(...),
@@ -76,12 +97,7 @@ async def tag_image(
     content = await file.read()
 
     # 5. Send to Gemini
-    prompt = (
-        "Analyze this image. Return a JSON object with exactly two keys:\n"
-        '- "tags": an array of 5 relevant single-word or short tags (lowercase, English)\n'
-        '- "description": a short one-sentence description of the image\n'
-        "Return ONLY valid JSON, no markdown fences or extra text."
-    )
+    prompt = _build_visual_reference_prompt()
 
     try:
         response = client.models.generate_content(
@@ -147,6 +163,28 @@ def _tokenize_text(value: str) -> set[str]:
         for token in re.findall(r"[a-z0-9]+", value.lower())
         if len(token) > 2
     }
+
+
+def _is_requesting_all_photos(prompt: str) -> bool:
+    """Return True when the user explicitly asks for all/almost all photos."""
+    normalized = prompt.lower()
+    explicit_phrases = (
+        "all photos",
+        "all images",
+        "every photo",
+        "every image",
+        "everything",
+        "entire collection",
+        "whole collection",
+        "all my photos",
+        "all of my photos",
+    )
+
+    if any(phrase in normalized for phrase in explicit_phrases):
+        return True
+
+    prompt_tokens = _tokenize_text(prompt)
+    return bool({"all", "every", "everything", "entire", "whole"}.intersection(prompt_tokens))
 
 
 def _build_collection_suggestion(supabase, user_id: str, prompt: str, max_photos: int) -> tuple[str, list[str], list[int]]:
@@ -303,6 +341,25 @@ def _build_collection_suggestion(supabase, user_id: str, prompt: str, max_photos
 
     if not ordered_photo_ids:
         raise HTTPException(status_code=404, detail="No photos matched the generated tags")
+
+    # Prevent vague prompts from returning almost the entire library.
+    # If users really want everything, they can explicitly ask for it.
+    # Otherwise, keep only a curated top slice instead of hard-failing.
+    owned_count = len(owned_photos)
+    broad_ratio = (len(ordered_photo_ids) / owned_count) if owned_count > 0 else 0
+    if (
+        owned_count >= 6
+        and broad_ratio >= 0.8
+        and not _is_requesting_all_photos(prompt)
+    ):
+        capped_count = max(6, min(len(ordered_photo_ids), max_photos, int(owned_count * 0.45)))
+        ordered_photo_ids = ordered_photo_ids[:capped_count]
+        logger.info(
+            "Broad AI collection match capped for user %s: %s/%s photos retained",
+            user_id,
+            len(ordered_photo_ids),
+            owned_count,
+        )
 
     title = (raw_title if raw_title else prompt.strip())[:60].strip() or "AI Generated Collection"
 
@@ -483,12 +540,7 @@ async def tag_existing_photo(
         raise HTTPException(status_code=500, detail="Failed to download image")
 
     # 4. Send to Gemini
-    prompt = (
-        "Analyze this image. Return a JSON object with exactly two keys:\n"
-        '- "tags": an array of 5 relevant single-word or short tags (lowercase, English)\n'
-        '- "description": a short one-sentence description of the image\n'
-        "Return ONLY valid JSON, no markdown fences or extra text."
-    )
+    prompt = _build_visual_reference_prompt()
 
     try:
         response = client.models.generate_content(

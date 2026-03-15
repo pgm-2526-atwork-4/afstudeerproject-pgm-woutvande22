@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Modal } from "@/app/components/ui/Modal";
 import { FilePicker } from "./FilePicker";
-import { ImagePreviewThumbnail } from "./ImagePreviewThumbnail";
 import { FormInput } from "@/app/components/ui/FormInput";
 import { TagSelector, type SelectedTag } from "./TagSelector";
 import { LoadingCircle } from "@/app/components/ui/LoadingCircle";
+import { UploadPreviewCarousel } from "./UploadPreviewCarousel";
+import { UploadAnalysisProgressBar } from "./UploadAnalysisProgressBar";
 import { uploadPhoto, getAiTagSuggestions } from "@/app/lib/photos";
 import { dispatchSidebarCountsChanged } from "@/app/lib/events";
 
@@ -40,6 +41,24 @@ export const UploadImageModal = ({
 
   const activeUpload = uploadItems.find((item) => item.id === activeUploadId) ?? uploadItems[0] ?? null;
   const hasAiLoading = uploadItems.some((item) => item.aiLoading);
+  const analyzedCount = uploadItems.filter((item) => !item.aiLoading).length;
+
+  const activeUploadIndex = useMemo(
+    () => Math.max(0, uploadItems.findIndex((item) => item.id === activeUpload?.id)),
+    [uploadItems, activeUpload]
+  );
+
+  const handlePrevUpload = useCallback(() => {
+    if (uploadItems.length <= 1) return;
+    const nextIndex = (activeUploadIndex - 1 + uploadItems.length) % uploadItems.length;
+    setActiveUploadId(uploadItems[nextIndex]?.id ?? null);
+  }, [activeUploadIndex, uploadItems]);
+
+  const handleNextUpload = useCallback(() => {
+    if (uploadItems.length <= 1) return;
+    const nextIndex = (activeUploadIndex + 1) % uploadItems.length;
+    setActiveUploadId(uploadItems[nextIndex]?.id ?? null);
+  }, [activeUploadIndex, uploadItems]);
 
   const resetState = useCallback(() => {
     uploadItems.forEach((item) => URL.revokeObjectURL(item.previewUrl));
@@ -178,39 +197,27 @@ export const UploadImageModal = ({
         )}
 
         {uploadItems.length > 0 && (
-          <div className={`grid gap-3 ${uploadItems.length === 1 ? "grid-cols-1" : "grid-cols-2 lg:grid-cols-3"}`}>
-            {uploadItems.map((item) => {
-              const isActive = activeUpload?.id === item.id;
+          <UploadAnalysisProgressBar
+            analyzedCount={analyzedCount}
+            totalCount={uploadItems.length}
+          />
+        )}
 
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setActiveUploadId(item.id)}
-                  className={`overflow-hidden rounded-xl border text-left transition-all cursor-pointer ${
-                    isActive
-                      ? "border-sky-400 ring-2 ring-sky-100"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <ImagePreviewThumbnail
-                    src={item.previewUrl}
-                    alt={item.file.name}
-                    className={uploadItems.length > 1 ? "aspect-4/3 max-h-36" : "max-h-64"}
-                  />
-                  <div className="bg-white px-3 py-2">
-                    <p className="truncate text-sm font-medium text-gray-800">{item.title || item.file.name}</p>
-                    <p className="mt-1 flex items-center gap-1.5 text-xs text-gray-500">
-                      {item.aiLoading && <LoadingCircle size="sm" className="text-sky-500" label="Analyzing image" />}
-                      <span>
-                        {item.aiLoading ? "Analyzing..." : `${item.selectedTags.length} tag${item.selectedTags.length === 1 ? "" : "s"}`}
-                      </span>
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+        {uploadItems.length > 0 && (
+          <UploadPreviewCarousel
+            items={uploadItems.map((item) => ({
+              id: item.id,
+              title: item.title,
+              fileName: item.file.name,
+              previewUrl: item.previewUrl,
+              aiLoading: item.aiLoading,
+              tagCount: item.selectedTags.length,
+            }))}
+            activeId={activeUpload?.id ?? null}
+            onSelect={setActiveUploadId}
+            onPrev={handlePrevUpload}
+            onNext={handleNextUpload}
+          />
         )}
 
         {uploadItems.length > 1 && activeUpload && (
