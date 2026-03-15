@@ -224,6 +224,25 @@ export const ImageGrid = ({
                     <p className="text-xs text-slate-500">
                       {image.tags?.length ? `${image.tags.length} tag${image.tags.length === 1 ? "" : "s"}` : "Untagged"}
                     </p>
+
+                    {image.tags && image.tags.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {image.tags.slice(0, 3).map((tag) => (
+                          <span
+                            key={tag.name}
+                            className="max-w-20 truncate rounded-full px-2 py-1 text-[10px] font-medium text-white shadow-sm"
+                            style={{ backgroundColor: tag.color_hex || "#6B7280" }}
+                          >
+                            {tag.name}
+                          </span>
+                        ))}
+                        {image.tags.length > 3 && (
+                          <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-medium text-slate-500">
+                            +{image.tags.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {image.hasCollection && (
