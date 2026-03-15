@@ -15,11 +15,14 @@ import {
   registerUser,
   fetchCurrentUser,
   logoutUser,
+  updateCurrentUser,
 } from "@/app/lib/auth";
 
 interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
+  refreshUser: () => Promise<AuthUser | null>;
+  updateProfile: (name: string) => Promise<AuthUser>;
   login: (email: string, password: string) => Promise<void>;
   register: (
     firstName: string,
@@ -37,20 +40,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  const refreshUser = useCallback(async () => {
+    const token = localStorage.getItem("access_token");
+
+    if (!token) {
+      setUser(null);
+      return null;
+    }
+
+    try {
+      const currentUser = await fetchCurrentUser(token);
+      setUser(currentUser);
+      return currentUser;
+    } catch {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+      setUser(null);
+      return null;
+    }
+  }, []);
+
   // On mount, check for an existing session
   useEffect(() => {
     const token = localStorage.getItem("access_token");
-    if (token) {
-      fetchCurrentUser(token)
-        .then(setUser)
-        .catch(() => {
-          localStorage.removeItem("access_token");
-          localStorage.removeItem("refresh_token");
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setLoading(false);
+
+    if (!token) {
+      Promise.resolve().then(() => setLoading(false));
+      return;
     }
+
+    fetchCurrentUser(token)
+      .then(setUser)
+      .catch(() => {
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        setUser(null);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const login = useCallback(
@@ -97,8 +123,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/login");
   }, [router]);
 
+  const updateProfile = useCallback(async (name: string) => {
+    const token = localStorage.getItem("access_token");
+
+    if (!token) {
+      throw new Error("Session expired");
+    }
+
+    const updatedUser = await updateCurrentUser(token, name);
+    setUser(updatedUser);
+    return updatedUser;
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        refreshUser,
+        updateProfile,
+        login,
+        register,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

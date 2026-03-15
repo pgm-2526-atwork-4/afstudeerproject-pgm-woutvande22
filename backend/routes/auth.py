@@ -1,12 +1,14 @@
 import logging
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, EmailStr
+from typing import Optional
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from dependencies import get_supabase, safe_maybe_single
 from supabase_auth.errors import AuthApiError
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
+DEFAULT_STORAGE_LIMIT_MB = 10240
 
 
 # Schemas
@@ -21,10 +23,75 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+class UserProfileResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    id: str
+    email: EmailStr
+    name: Optional[str] = None
+    current_storage_mb: float = 0
+    subscription_id: Optional[int] = None
+    created_at: Optional[str] = None
+    storage_limit_mb: float = DEFAULT_STORAGE_LIMIT_MB
+
 class AuthResponse(BaseModel):
     access_token: str
     refresh_token: str
-    user: dict
+    user: UserProfileResponse
+
+class UpdateProfileRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=120)
+
+
+def _get_authenticated_user(supabase, access_token: str):
+    try:
+        user_response = supabase.auth.get_user(access_token)
+    except AuthApiError as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+    user = user_response.user
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    supabase.postgrest.auth(access_token)
+    return user
+
+
+def _get_storage_limit_mb(supabase, subscription_id: Optional[int]) -> float:
+    if not subscription_id:
+        return float(DEFAULT_STORAGE_LIMIT_MB)
+
+    try:
+        subscription = safe_maybe_single(
+            supabase.table("subscriptions")
+            .select("storage_limit_mb")
+            .eq("id", subscription_id)
+        )
+    except Exception as e:
+        logger.error(f"Failed to fetch subscription storage limit: {e}")
+        return float(DEFAULT_STORAGE_LIMIT_MB)
+
+    if not subscription.data:
+        return float(DEFAULT_STORAGE_LIMIT_MB)
+
+    return float(subscription.data.get("storage_limit_mb") or DEFAULT_STORAGE_LIMIT_MB)
+
+
+def _build_profile_response(supabase, profile_data: Optional[dict], auth_user) -> UserProfileResponse:
+    profile = dict(profile_data or {})
+
+    if not profile.get("id"):
+        profile["id"] = auth_user.id
+    if not profile.get("email"):
+        profile["email"] = auth_user.email
+
+    profile["current_storage_mb"] = float(profile.get("current_storage_mb") or 0)
+    profile["storage_limit_mb"] = _get_storage_limit_mb(
+        supabase,
+        profile.get("subscription_id"),
+    )
+
+    return UserProfileResponse.model_validate(profile)
 
 
 #  Register 
@@ -66,19 +133,26 @@ def register(body: RegisterRequest):
     except Exception as e:
         logger.error(f"Failed to create user profile: {e}")
 
+    user_payload = UserProfileResponse(
+        id=user.id,
+        email=body.email,
+        name=full_name,
+        current_storage_mb=0,
+        storage_limit_mb=float(DEFAULT_STORAGE_LIMIT_MB),
+    )
+
     if not session:
         # Email confirmation is enabled – user must verify first
         return AuthResponse(
             access_token="",
             refresh_token="",
-            user={"id": user.id, "email": body.email, "name": full_name,
-                  "message": "Check your email to confirm your account."},
+            user=user_payload,
         )
 
     return AuthResponse(
         access_token=session.access_token,
         refresh_token=session.refresh_token,
-        user={"id": user.id, "email": body.email, "name": full_name},
+        user=user_payload,
     )
 
 
@@ -109,28 +183,50 @@ def login(body: LoginRequest):
     return AuthResponse(
         access_token=session.access_token,
         refresh_token=session.refresh_token,
-        user=profile.data if profile.data else {"id": user.id, "email": body.email},
+        user=_build_profile_response(supabase, profile.data, user),
     )
 
 
 #  Get current user (from token) 
 
-@router.get("/me")
-def get_current_user(access_token: str):
+@router.get("/me", response_model=UserProfileResponse)
+def get_current_user(access_token: str = Query(...)):
     """Return the current user based on their access token."""
     supabase = get_supabase()
-
-    try:
-        user_response = supabase.auth.get_user(access_token)
-    except AuthApiError as e:
-        raise HTTPException(status_code=401, detail=str(e))
-
-    user = user_response.user
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    user = _get_authenticated_user(supabase, access_token)
 
     profile = safe_maybe_single(supabase.table("users").select("*").eq("id", user.id))
-    return profile.data if profile.data else {"id": user.id, "email": user.email}
+    return _build_profile_response(supabase, profile.data, user)
+
+
+@router.patch("/me", response_model=UserProfileResponse)
+def update_current_user(body: UpdateProfileRequest, access_token: str = Query(...)):
+    """Update the current user's profile in the public users table."""
+    supabase = get_supabase()
+    user = _get_authenticated_user(supabase, access_token)
+
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Name cannot be empty")
+
+    profile = safe_maybe_single(supabase.table("users").select("*").eq("id", user.id))
+
+    try:
+        if profile.data:
+            supabase.table("users").update({"name": name}).eq("id", user.id).execute()
+        else:
+            supabase.table("users").insert({
+                "id": user.id,
+                "name": name,
+                "email": user.email,
+                "current_storage_mb": 0,
+            }).execute()
+    except Exception as e:
+        logger.error(f"Failed to update user profile: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update profile")
+
+    updated_profile = safe_maybe_single(supabase.table("users").select("*").eq("id", user.id))
+    return _build_profile_response(supabase, updated_profile.data, user)
 
 
 # Logout 

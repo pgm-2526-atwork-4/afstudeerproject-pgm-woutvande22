@@ -6,6 +6,8 @@ export interface AuthUser {
   name?: string;
   current_storage_mb?: number;
   subscription_id?: number;
+  created_at?: string;
+  storage_limit_mb?: number;
 }
 
 export interface AuthResponse {
@@ -64,6 +66,27 @@ export async function fetchCurrentUser(accessToken: string): Promise<AuthUser> {
 
   if (!res.ok) {
     throw new Error("Session expired");
+  }
+
+  return res.json();
+}
+
+export async function updateCurrentUser(
+  accessToken: string,
+  name: string
+): Promise<AuthUser> {
+  const res = await fetch(
+    `${API_URL}/api/auth/me?access_token=${encodeURIComponent(accessToken)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    }
+  );
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => null);
+    throw new Error(error?.detail || "Failed to update profile");
   }
 
   return res.json();
