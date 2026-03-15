@@ -1,10 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { CheckOutlined } from "@mui/icons-material";
 import { ImageCard } from "./ImageCard";
+import { DeleteButton } from "./DeleteButton";
+import { DeleteImageModal } from "./DeleteImageModal";
 import { SortableList } from "../../dnd/SortableList";
 import { SortableGridItem } from "../../dnd/SortableGridItem";
+import { deletePhoto } from "@/app/lib/photos";
+import { removePhotoFromCollection } from "@/app/lib/collections";
+import { dispatchSidebarCountsChanged } from "@/app/lib/events";
 import type { ImageViewMode } from "./ImageViewModeToggle";
 
 export interface ImageTag {
@@ -31,6 +37,109 @@ interface ImageGridProps {
   onDelete?: (id: string) => void;
 }
 
+interface GridImageTileProps {
+  image: ImageItem;
+  selected: boolean;
+  href: string;
+  collectionId?: string;
+  onToggleSelect?: (id: string) => void;
+  onDelete?: (id: string) => void;
+}
+
+const GridImageTile = ({
+  image,
+  selected,
+  href,
+  collectionId,
+  onToggleSelect,
+  onDelete,
+}: GridImageTileProps) => {
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) throw new Error("Not authenticated");
+
+      if (collectionId) {
+        await removePhotoFromCollection(token, Number(collectionId), Number(image.id));
+      } else {
+        await deletePhoto(token, Number(image.id));
+      }
+
+      setShowDeleteModal(false);
+      dispatchSidebarCountsChanged();
+      onDelete?.(image.id);
+    } catch (error) {
+      console.error("Failed to delete photo:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <>
+      <article className="mb-3 break-inside-avoid">
+        <Link
+          href={href}
+          className={`group relative block overflow-hidden rounded-2xl border bg-white ${
+            selected ? "border-sky-300 ring-2 ring-sky-200" : "border-slate-200/80"
+          }`}
+        >
+          {image.url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={image.url}
+              alt={image.label || `Photo ${image.id}`}
+              className="h-auto w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+              loading="lazy"
+            />
+          ) : (
+            <div className="h-36 w-full bg-slate-200" />
+          )}
+
+          {onToggleSelect && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggleSelect(image.id);
+              }}
+              className={`absolute left-2 top-2 flex h-9 w-9 items-center justify-center rounded-2xl border backdrop-blur-sm transition-all duration-200 cursor-pointer ${
+                selected
+                  ? "border-2 border-white bg-sky-400 text-white opacity-100 shadow-lg shadow-sky-400/30"
+                  : "border border-black/70 bg-white/88 text-slate-600 opacity-0 group-hover:opacity-100"
+              }`}
+              aria-label={selected ? "Deselect image" : "Select image"}
+            >
+              {selected && <CheckOutlined sx={{ fontSize: 16 }} />}
+            </button>
+          )}
+
+          <DeleteButton onClick={handleDeleteClick} />
+        </Link>
+      </article>
+
+      <DeleteImageModal
+        open={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        isDeleting={isDeleting}
+        isCollectionRemove={!!collectionId}
+      />
+    </>
+  );
+};
+
 export const ImageGrid = ({
   images,
   collectionId,
@@ -49,45 +158,15 @@ export const ImageGrid = ({
           const selected = selectedIds?.has(image.id) ?? false;
 
           return (
-            <article key={image.id} className="mb-3 break-inside-avoid">
-              <Link
-                href={hrefFor(image.id)}
-                className={`group relative block overflow-hidden rounded-2xl border bg-white ${
-                  selected ? "border-sky-300 ring-2 ring-sky-200" : "border-slate-200/80"
-                }`}
-              >
-                {image.url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={image.url}
-                    alt={image.label || `Photo ${image.id}`}
-                    className="h-auto w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="h-36 w-full bg-slate-200" />
-                )}
-
-                {onToggleSelect && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      onToggleSelect(image.id);
-                    }}
-                    className={`absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-xl border text-white transition-colors cursor-pointer ${
-                      selected
-                        ? "border-white bg-sky-500"
-                        : "border-black/50 bg-white/85 text-slate-600"
-                    }`}
-                    aria-label={selected ? "Deselect image" : "Select image"}
-                  >
-                    {selected && <CheckOutlined sx={{ fontSize: 16 }} />}
-                  </button>
-                )}
-              </Link>
-            </article>
+            <GridImageTile
+              key={image.id}
+              image={image}
+              selected={selected}
+              href={hrefFor(image.id)}
+              collectionId={collectionId}
+              onToggleSelect={onToggleSelect}
+              onDelete={onDelete}
+            />
           );
         })}
       </section>
