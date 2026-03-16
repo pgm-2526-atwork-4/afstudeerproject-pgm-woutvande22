@@ -14,6 +14,7 @@ import {
 import { dispatchCollectionsChanged } from "@/app/lib/events";
 import { fetchPhotos, type Photo } from "@/app/lib/photos";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import { DeleteOutline } from "@mui/icons-material";
 
 interface GenerateCollectionModalProps {
   open: boolean;
@@ -174,17 +175,10 @@ export const GenerateCollectionModal = ({
                   <p className="text-sm text-gray-500 text-center py-8">No images selected.</p>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {selectedPhotos.map((photo) => {
-                    const selected = selectedPhotoIds.has(photo.id);
-                    return (
-                      <button
+                    {selectedPhotos.map((photo) => (
+                      <div
                         key={photo.id}
-                        type="button"
-                        onClick={() => togglePhotoSelection(photo.id)}
-                        className={`relative overflow-hidden rounded-lg border-2 transition-colors cursor-pointer ${
-                          selected ? "border-sky-400" : "border-transparent"
-                        }`}
-                        aria-pressed={selected}
+                        className="group relative overflow-hidden rounded-lg border-2 border-sky-400"
                       >
                         <Image
                           src={photo.url}
@@ -193,16 +187,16 @@ export const GenerateCollectionModal = ({
                           height={240}
                           className="h-36 w-full object-cover"
                         />
-                        <span
-                          className={`absolute right-2 top-2 text-xs font-semibold rounded px-2 py-1 ${
-                            selected ? "bg-sky-500 text-white" : "bg-black/50 text-white"
-                          }`}
+                        <button
+                          type="button"
+                          onClick={() => togglePhotoSelection(photo.id)}
+                          className="absolute top-2 right-2 flex h-8 w-8 items-center justify-center rounded-xl border border-white/70 bg-white/88 text-slate-600 shadow-lg shadow-slate-900/10 opacity-0 backdrop-blur-sm transition-all duration-200 group-hover:opacity-100 hover:bg-red-50 hover:text-red-600 cursor-pointer"
+                          aria-label="Remove from collection"
                         >
-                          {selected ? "Selected" : "Removed"}
-                        </span>
-                      </button>
-                    );
-                    })}
+                          <DeleteOutline sx={{ fontSize: 16 }} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
