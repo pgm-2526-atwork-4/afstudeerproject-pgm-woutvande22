@@ -1,11 +1,11 @@
 import Link from "next/link"
-import PermMediaIcon from '@mui/icons-material/PermMedia';
+import Image from "next/image";
 
 export const Navbar = () => (
   <nav className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200">
         <div className="flex items-center gap-2">
-          <PermMediaIcon />
-          <span className="font-semibold text-gray-900 text-base">ImageVault</span>
+          <Image src="/favicon-32x32.png" alt="Collections logo" width={24} height={24} />
+          <span className="font-semibold text-gray-900 text-base">Collections</span>
         </div>
         <Link
           href="/login"
