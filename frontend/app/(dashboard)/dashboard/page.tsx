@@ -8,10 +8,12 @@ import { ImageGrid, type ImageItem } from "@/app/components/dashboard/images/Ima
 import { ImageViewModeToggle, type ImageViewMode } from "@/app/components/dashboard/images/ImageViewModeToggle";
 import { BulkActionBar } from "@/app/components/dashboard/images/BulkActionBar";
 import { GenerateCollectionButton } from "@/app/components/dashboard/collections/GenerateCollectionButton";
-import { fetchPhotos, reorderPhotos } from "@/app/lib/photos";
+import { fetchPhotosPage, reorderPhotos, type Photo } from "@/app/lib/photos";
 import { fetchPhotoCollectionCounts } from "@/app/lib/collections";
 import { fetchBatchPhotoTags, fetchTags, type Tag } from "@/app/lib/tags";
 import { ImageGridSkeleton } from "@/app/components/dashboard/images/ImageCardSkeleton";
+
+const PHOTOS_PAGE_SIZE = 80;
 
 export default function DashboardPage() {
   const [images, setImages] = useState<ImageItem[]>([]);
@@ -22,31 +24,12 @@ export default function DashboardPage() {
   const [collectionFilter, setCollectionFilter] = useState<CollectionFilter>("all");
   const [tags, setTags] = useState<Tag[]>([]);
   const [viewMode, setViewMode] = useState<ImageViewMode>("cards");
+  const [nextOffset, setNextOffset] = useState<number | null>(null);
+  const [hasMorePhotos, setHasMorePhotos] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const toggleSelect = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const loadPhotos = useCallback(async () => {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const [photos, userTags] = await Promise.all([
-        fetchPhotos(token),
-        fetchTags(token),
-      ]);
-
-      setTags(userTags);
-
+  const mapPhotosToImageItems = useCallback(
+    async (token: string, photos: Photo[]): Promise<ImageItem[]> => {
       const photoIds = photos.map((p) => p.id);
       let collectionCountByPhotoId: Record<string, number> = {};
 
@@ -66,8 +49,7 @@ export default function DashboardPage() {
         collectionCount: collectionCountByPhotoId[String(p.id)] ?? 0,
       }));
 
-      // Fetch tags for all photos in one batch request
-      if (photos.length > 0) {
+      if (photoIds.length > 0) {
         try {
           const tagMap = await fetchBatchPhotoTags(token, photoIds);
           for (const item of items) {
@@ -81,13 +63,46 @@ export default function DashboardPage() {
         }
       }
 
+      return items;
+    },
+    []
+  );
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const loadPhotos = useCallback(async () => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const [photoPage, userTags] = await Promise.all([
+        fetchPhotosPage(token, { limit: PHOTOS_PAGE_SIZE, offset: 0 }),
+        fetchTags(token),
+      ]);
+
+      setTags(userTags);
+
+      const items = await mapPhotosToImageItems(token, photoPage.photos ?? []);
+
       setImages(items);
+      setHasMorePhotos(Boolean(photoPage.has_more));
+      setNextOffset(typeof photoPage.next_offset === "number" ? photoPage.next_offset : null);
     } catch (err) {
       console.error("Failed to load photos:", err);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [mapPhotosToImageItems]);
 
   useEffect(() => {
     loadPhotos();
@@ -120,6 +135,36 @@ export default function DashboardPage() {
   const handleBulkDelete = useCallback((ids: string[]) => {
     setImages((prev) => prev.filter((img) => !ids.includes(img.id)));
   }, []);
+
+  const loadMorePhotos = useCallback(async () => {
+    if (isLoadingMore || !hasMorePhotos || nextOffset === null) return;
+
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+
+    setIsLoadingMore(true);
+    try {
+      const photoPage = await fetchPhotosPage(token, {
+        limit: PHOTOS_PAGE_SIZE,
+        offset: nextOffset,
+      });
+
+      const nextItems = await mapPhotosToImageItems(token, photoPage.photos ?? []);
+
+      setImages((prev) => {
+        const existingIds = new Set(prev.map((item) => item.id));
+        const deduped = nextItems.filter((item) => !existingIds.has(item.id));
+        return [...prev, ...deduped];
+      });
+
+      setHasMorePhotos(Boolean(photoPage.has_more));
+      setNextOffset(typeof photoPage.next_offset === "number" ? photoPage.next_offset : null);
+    } catch (err) {
+      console.error("Failed to load more photos:", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [hasMorePhotos, isLoadingMore, mapPhotosToImageItems, nextOffset]);
 
   const filteredImages = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
@@ -177,6 +222,9 @@ export default function DashboardPage() {
             onToggleSelect={toggleSelect}
             onReorder={handleReorder}
             onDelete={handleDelete}
+            hasMoreFromServer={hasMorePhotos}
+            isLoadingMore={isLoadingMore}
+            onLoadMore={loadMorePhotos}
           />
         )}
       </div>

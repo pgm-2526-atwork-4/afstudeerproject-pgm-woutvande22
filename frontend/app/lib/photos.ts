@@ -11,6 +11,14 @@ export interface Photo {
   created_at?: string;
 }
 
+export interface FetchPhotosPageResponse {
+  photos: Photo[];
+  count: number;
+  total_count?: number;
+  next_offset?: number | null;
+  has_more?: boolean;
+}
+
 export async function uploadPhoto(
   accessToken: string,
   file: File,
@@ -52,6 +60,23 @@ export async function fetchPhotos(accessToken: string): Promise<Photo[]> {
 
   const data = await res.json();
   return data.photos;
+}
+
+export async function fetchPhotosPage(
+  accessToken: string,
+  options: { limit: number; offset?: number }
+): Promise<FetchPhotosPageResponse> {
+  const params = new URLSearchParams({
+    access_token: accessToken,
+    limit: String(options.limit),
+    offset: String(options.offset ?? 0),
+  });
+
+  const res = await fetch(`${API_URL}/api/photos/?${params.toString()}`);
+
+  if (!res.ok) throw new Error("Failed to fetch photos");
+
+  return res.json();
 }
 
 export async function deletePhoto(

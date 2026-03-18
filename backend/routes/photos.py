@@ -30,6 +30,9 @@ class PhotoResponse(BaseModel):
 class PhotoListResponse(BaseModel):
     photos: list[PhotoResponse]
     count: int
+    total_count: Optional[int] = None
+    next_offset: Optional[int] = None
+    has_more: bool = False
 
 class ReorderItem(BaseModel):
     id: int
@@ -275,7 +278,11 @@ async def upload_photo(
 # get all photos for user
 
 @router.get("/", response_model=PhotoListResponse)
-def get_my_photos(access_token: str = Query(...)):
+def get_my_photos(
+    access_token: str = Query(...),
+    limit: Optional[int] = Query(None, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
     """Return all photos belonging to the authenticated user."""
     supabase = get_supabase()
 
@@ -289,23 +296,54 @@ def get_my_photos(access_token: str = Query(...)):
         raise HTTPException(status_code=401, detail="Invalid token")
 
     try:
-        result = (
+        query = (
             supabase.table("photos")
-            .select("*")
+            .select("*", count="exact")
             .eq("user_id", user.id)
             .order("order_id")
-            .execute()
-        )
-    except Exception:
-        # Fallback if order_id column doesn't exist yet
-        result = (
-            supabase.table("photos")
-            .select("*")
-            .eq("user_id", user.id)
-            .execute()
         )
 
-    return PhotoListResponse(photos=result.data, count=len(result.data))
+        if limit is not None:
+            query = query.range(offset, offset + limit - 1)
+
+        result = query.execute()
+    except Exception:
+        # Fallback if order_id column doesn't exist yet
+        query = (
+            supabase.table("photos")
+            .select("*", count="exact")
+            .eq("user_id", user.id)
+        )
+
+        if limit is not None:
+            query = query.range(offset, offset + limit - 1)
+
+        result = query.execute()
+
+    rows = result.data or []
+    total_count = result.count if isinstance(result.count, int) else None
+
+    if limit is None:
+        return PhotoListResponse(
+            photos=rows,
+            count=len(rows),
+            total_count=total_count,
+            next_offset=None,
+            has_more=False,
+        )
+
+    has_more = len(rows) == limit and (
+        total_count is None or (offset + len(rows) < total_count)
+    )
+    next_offset = offset + len(rows) if has_more else None
+
+    return PhotoListResponse(
+        photos=rows,
+        count=len(rows),
+        total_count=total_count,
+        next_offset=next_offset,
+        has_more=has_more,
+    )
 
 
 # reorder photos
