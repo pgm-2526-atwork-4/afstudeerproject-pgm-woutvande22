@@ -1,6 +1,7 @@
 import logging
 import uuid
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Body
 from pydantic import BaseModel
 from typing import Optional
@@ -313,23 +314,62 @@ def get_my_photos(access_token: str = Query(...)):
 def reorder_photos(access_token: str = Query(...), body: ReorderRequest = Body(...)):
     """Update the order_id of multiple photos at once."""
     supabase = get_supabase()
+    user = _get_current_user(supabase, access_token)
+
+    update_map = {item.id: item.order_id for item in body.photos}
+    if not update_map:
+        return {"message": "Order updated"}
+
+    requested_ids = list(update_map.keys())
 
     try:
-        user_response = supabase.auth.get_user(access_token)
+        existing = (
+            supabase.table("photos")
+            .select("id, order_id")
+            .eq("user_id", user.id)
+            .in_("id", requested_ids)
+            .execute()
+        )
     except Exception as e:
-        raise HTTPException(status_code=401, detail=str(e))
+        logger.error(f"Failed to fetch photos before reorder: {e}")
+        raise HTTPException(status_code=500, detail="Failed to reorder photos")
 
-    user = user_response.user
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
+    current_order_by_id = {
+        row["id"]: int(row.get("order_id") or 0)
+        for row in (existing.data or [])
+    }
 
-    for item in body.photos:
-        try:
-            supabase.table("photos").update({
-                "order_id": item.order_id
-            }).eq("id", item.id).eq("user_id", user.id).execute()
-        except Exception as e:
-            logger.error(f"Failed to update order for photo {item.id}: {e}")
+    updates_to_apply = [
+        (photo_id, new_order)
+        for photo_id, new_order in update_map.items()
+        if photo_id in current_order_by_id and current_order_by_id[photo_id] != new_order
+    ]
+
+    if not updates_to_apply:
+        return {"message": "Order updated"}
+
+    def _update_one(photo_id: int, new_order: int) -> None:
+        supabase.table("photos").update({"order_id": new_order}).eq("id", photo_id).eq("user_id", user.id).execute()
+
+    failures: list[int] = []
+    max_workers = min(8, len(updates_to_apply))
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_map = {
+            executor.submit(_update_one, photo_id, new_order): photo_id
+            for photo_id, new_order in updates_to_apply
+        }
+
+        for future in as_completed(future_map):
+            photo_id = future_map[future]
+            try:
+                future.result()
+            except Exception as e:
+                failures.append(photo_id)
+                logger.error(f"Failed to update order for photo {photo_id}: {e}")
+
+    if failures:
+        logger.warning(f"Photo reorder partially failed for user {user.id}: {len(failures)} failures")
 
     return {"message": "Order updated"}
 
