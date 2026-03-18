@@ -265,6 +265,30 @@ def _is_requesting_all_photos(prompt: str) -> bool:
     return bool({"all", "every", "everything", "entire", "whole"}.intersection(prompt_tokens))
 
 
+def _build_photo_text_context(photos: list[dict], max_items: int = 40) -> str:
+    """Return compact JSON context from photo titles/descriptions for AI prompting."""
+    context: list[dict] = []
+
+    for photo in photos:
+        title = str(photo.get("title") or "").strip()
+        description = str(photo.get("description") or "").strip()
+        if not title and not description:
+            continue
+
+        context.append(
+            {
+                "id": int(photo.get("id") or 0),
+                "title": title[:120],
+                "description": description[:240],
+            }
+        )
+
+        if len(context) >= max_items:
+            break
+
+    return json.dumps(context)
+
+
 def _build_collection_suggestion(supabase, user_id: str, prompt: str, max_photos: int) -> tuple[str, list[str], list[int]]:
     """Return (title, selected_tags, ordered_photo_ids) for a prompt without creating records."""
     # Load available user tags
@@ -287,21 +311,39 @@ def _build_collection_suggestion(supabase, user_id: str, prompt: str, max_photos
             detail="No tags found. Add tags to your photos before generating a collection.",
         )
 
+    # Load user photos once and reuse for AI prompt context + relevance scoring.
+    try:
+        photos_result = (
+            supabase.table("photos")
+            .select("id, order_id, title, description")
+            .eq("user_id", user_id)
+            .execute()
+        )
+    except Exception as e:
+        logger.error(f"Failed to fetch candidate photos: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch matched photos")
+
+    owned_photos = photos_result.data or []
+    if not owned_photos:
+        raise HTTPException(status_code=404, detail="No photos available to generate a collection")
+
     tag_names = [str(tag["name"]).strip().lower() for tag in user_tags if tag.get("name")]
     tag_id_by_name = {str(tag["name"]).strip().lower(): tag["id"] for tag in user_tags if tag.get("name")}
 
     # Ask Gemini which existing tags to use for this prompt
     ai_prompt = (
         "You are selecting existing user tags for a photo collection.\n"
-        "Given the user's prompt and available tags, return ONLY JSON with this exact shape:\n"
+        "Given the user's prompt, available tags, and photo title/description context, return ONLY JSON with this exact shape:\n"
         '{"title": "short collection title", "tags": ["tag1", "tag2", "tag3"]}\n'
         "Rules:\n"
         "- tags must come only from the available tags list\n"
         "- choose between 2 and 8 tags\n"
+        "- choose tags that are strongly supported by the provided photo descriptions and titles\n"
         "- keep title under 60 characters\n"
         "- do not include markdown or extra text\n\n"
         f"User prompt: {prompt}\n"
-        f"Available tags: {json.dumps(tag_names)}"
+        f"Available tags: {json.dumps(tag_names)}\n"
+        f"Photo text context: {_build_photo_text_context(owned_photos)}"
     )
 
     try:
@@ -359,21 +401,7 @@ def _build_collection_suggestion(supabase, user_id: str, prompt: str, max_photos
         if tag_id in tag_id_set:
             score_by_photo[photo_id] = score_by_photo.get(photo_id, 0) + 1
 
-    # Pull user photos and also score textual relevance from title/description.
-    try:
-        photos_result = (
-            supabase.table("photos")
-            .select("id, order_id, title, description")
-            .eq("user_id", user_id)
-            .execute()
-        )
-    except Exception as e:
-        logger.error(f"Failed to fetch candidate photos: {e}")
-        raise HTTPException(status_code=500, detail="Failed to fetch matched photos")
-
-    owned_photos = photos_result.data or []
-    if not owned_photos:
-        raise HTTPException(status_code=404, detail="No photos matched the generated tags")
+    # Score textual relevance from title/description.
 
     prompt_tokens = _tokenize_text(prompt)
     selected_tag_tokens: set[str] = set()

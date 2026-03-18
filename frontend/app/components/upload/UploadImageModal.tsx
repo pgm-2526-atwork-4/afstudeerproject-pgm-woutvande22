@@ -18,6 +18,8 @@ interface UploadItem {
   previewUrl: string;
   title: string;
   selectedTags: SelectedTag[];
+  aiSuggestedTags: SelectedTag[];
+  tagsTouched: boolean;
   description: string;
   aiLoading: boolean;
 }
@@ -36,6 +38,57 @@ const normalizeAiTagName = (value: string): string =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
+
+const dedupeTags = (tags: SelectedTag[]): SelectedTag[] => {
+  const deduped: SelectedTag[] = [];
+  const seen = new Set<string>();
+
+  for (const tag of tags) {
+    const normalized = normalizeAiTagName(tag.name);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    deduped.push(tag);
+  }
+
+  return deduped;
+};
+
+const applySharedAiTags = (items: UploadItem[]): UploadItem[] => {
+  const frequency = new Map<string, number>();
+  const canonicalByName = new Map<string, SelectedTag>();
+
+  for (const item of items) {
+    const namesInItem = new Set<string>();
+    for (const tag of item.aiSuggestedTags) {
+      const normalized = normalizeAiTagName(tag.name);
+      if (!normalized || namesInItem.has(normalized)) continue;
+      namesInItem.add(normalized);
+      frequency.set(normalized, (frequency.get(normalized) ?? 0) + 1);
+      if (!canonicalByName.has(normalized)) {
+        canonicalByName.set(normalized, tag);
+      }
+    }
+  }
+
+  const sharedTags = [...frequency.entries()]
+    .filter(([, count]) => count >= 2)
+    .map(([name]) => canonicalByName.get(name))
+    .filter((tag): tag is SelectedTag => Boolean(tag));
+
+  if (sharedTags.length === 0) return items;
+
+  return items.map((item) => {
+    if (item.tagsTouched || item.aiLoading) {
+      return item;
+    }
+
+    const merged = dedupeTags([...item.aiSuggestedTags, ...sharedTags]).slice(0, 10);
+    return {
+      ...item,
+      selectedTags: merged,
+    };
+  });
+};
 
 export const UploadImageModal = ({
   open,
@@ -112,6 +165,8 @@ export const UploadImageModal = ({
       previewUrl: URL.createObjectURL(selectedFile),
       title: selectedFile.name.replace(/\.[^/.]+$/, ""),
       selectedTags: [],
+      aiSuggestedTags: [],
+      tagsTouched: false,
       description: "",
       aiLoading: Boolean(token),
     }));
@@ -149,18 +204,32 @@ export const UploadImageModal = ({
             selectedTags.push(nextTag);
           }
 
-          updateUploadItem(item.id, {
-            selectedTags,
-            description: result.description || "",
-            aiLoading: false,
+          setUploadItems((current) => {
+            const updated = current.map((uploadItem) =>
+              uploadItem.id === item.id
+                ? {
+                    ...uploadItem,
+                    aiSuggestedTags: selectedTags,
+                    selectedTags,
+                    description: result.description || "",
+                    aiLoading: false,
+                  }
+                : uploadItem
+            );
+
+            return applySharedAiTags(updated);
           });
         })
         .catch((err) => {
           console.error("AI tagging failed:", err);
-          updateUploadItem(item.id, { aiLoading: false });
+          setUploadItems((current) =>
+            current.map((uploadItem) =>
+              uploadItem.id === item.id ? { ...uploadItem, aiLoading: false } : uploadItem
+            )
+          );
         });
     });
-  }, [existingTags, updateUploadItem, uploadItems]);
+  }, [existingTags, uploadItems]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
@@ -296,7 +365,7 @@ export const UploadImageModal = ({
         {activeUpload && (
           <TagSelector
             selectedTags={activeUpload.selectedTags}
-            onChange={(tags) => updateUploadItem(activeUpload.id, { selectedTags: tags })}
+            onChange={(tags) => updateUploadItem(activeUpload.id, { selectedTags: tags, tagsTouched: true })}
           />
         )}
 
