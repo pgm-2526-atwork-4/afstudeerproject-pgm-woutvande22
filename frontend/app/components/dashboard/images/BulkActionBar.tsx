@@ -41,7 +41,7 @@ export const BulkActionBar = ({
       const token = localStorage.getItem("access_token");
       if (!token) throw new Error("Not authenticated");
 
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/+$/, "");
       const ids = Array.from(selectedIds);
 
       // Add each photo to the collection
