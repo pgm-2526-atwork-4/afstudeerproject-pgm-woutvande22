@@ -10,6 +10,7 @@ import { UploadPreviewCarousel } from "./UploadPreviewCarousel";
 import { UploadAnalysisProgressBar } from "./UploadAnalysisProgressBar";
 import { uploadPhoto, getAiTagSuggestions } from "@/app/lib/photos";
 import { fetchTags, type Tag } from "@/app/lib/tags";
+import { getDeterministicTagColor } from "@/app/lib/color";
 import { dispatchSidebarCountsChanged } from "@/app/lib/events";
 
 interface UploadItem {
@@ -38,6 +39,22 @@ const normalizeAiTagName = (value: string): string =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
+
+const tokenize = (value: string): string[] =>
+  normalizeAiTagName(value)
+    .split("-")
+    .map((part) => part.trim())
+    .filter((part) => part.length >= 3);
+
+const isSharedTagRelevantToItem = (tagName: string, item: UploadItem): boolean => {
+  const tagTokens = tokenize(tagName);
+  if (tagTokens.length === 0) return false;
+
+  const textBlob = `${item.title} ${item.description}`;
+  const itemTokens = new Set(tokenize(textBlob));
+
+  return tagTokens.some((token) => itemTokens.has(token));
+};
 
 const dedupeTags = (tags: SelectedTag[]): SelectedTag[] => {
   const deduped: SelectedTag[] = [];
@@ -82,7 +99,15 @@ const applySharedAiTags = (items: UploadItem[]): UploadItem[] => {
       return item;
     }
 
-    const merged = dedupeTags([...item.aiSuggestedTags, ...sharedTags]).slice(0, 10);
+    const relevantSharedTags = sharedTags.filter((tag) =>
+      isSharedTagRelevantToItem(tag.name, item)
+    );
+
+    if (relevantSharedTags.length === 0) {
+      return item;
+    }
+
+    const merged = dedupeTags([...item.aiSuggestedTags, ...relevantSharedTags]).slice(0, 10);
     return {
       ...item,
       selectedTags: merged,
@@ -194,9 +219,10 @@ export const UploadImageModal = ({
             if (!normalizedName) continue;
 
             const existing = existingByNormalized.get(normalizedName);
+            const aiColor = result.tag_colors?.[normalizedName] || result.tag_colors?.[rawName];
             const nextTag: SelectedTag = existing
               ? { id: existing.id, name: existing.name, color_hex: existing.color_hex }
-              : { name: normalizedName, color_hex: "#6B7280" };
+              : { name: normalizedName, color_hex: aiColor || getDeterministicTagColor(normalizedName) };
 
             const dedupeKey = nextTag.name.toLowerCase();
             if (usedNames.has(dedupeKey)) continue;
@@ -257,6 +283,10 @@ export const UploadImageModal = ({
       try {
         const uploads = uploadItems.map((item) => {
           const tagNames = item.selectedTags.map((tag) => tag.name);
+          const tagItems = item.selectedTags.map((tag) => ({
+            name: tag.name,
+            color_hex: tag.color_hex,
+          }));
 
           return uploadPhoto(
             token,
@@ -264,7 +294,8 @@ export const UploadImageModal = ({
             collectionId,
             item.title || undefined,
             tagNames.length > 0 ? tagNames : undefined,
-            item.description || undefined
+            item.description || undefined,
+            tagItems.length > 0 ? tagItems : undefined
           );
         });
 

@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import re
+import hashlib
 import httpx
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query
 from pydantic import BaseModel, Field
@@ -31,6 +32,7 @@ client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 class TagSuggestion(BaseModel):
     tags: list[str]
     description: str
+    tag_colors: dict[str, str] = {}
 
 
 class GenerateCollectionRequest(BaseModel):
@@ -59,6 +61,46 @@ def _normalize_tag_name(value: str) -> str:
     return normalized
 
 
+def _normalize_color_hex(value: str | None) -> str | None:
+    """Normalize a color value to #RRGGBB when possible."""
+    if not value:
+        return None
+
+    raw = str(value).strip().lower()
+    if not raw:
+        return None
+
+    if re.fullmatch(r"#[0-9a-f]{6}", raw):
+        return raw.upper()
+
+    if re.fullmatch(r"#[0-9a-f]{3}", raw):
+        expanded = "#" + "".join(ch * 2 for ch in raw[1:])
+        return expanded.upper()
+
+    return None
+
+
+def _fallback_color_for_tag(tag_name: str) -> str:
+    """Generate a deterministic pleasant color for a tag name."""
+    palette = [
+        "#0EA5E9",  # sky
+        "#22C55E",  # green
+        "#F97316",  # orange
+        "#8B5CF6",  # violet
+        "#EC4899",  # pink
+        "#EAB308",  # amber
+        "#14B8A6",  # teal
+        "#F43F5E",  # rose
+        "#84CC16",  # lime
+        "#06B6D4",  # cyan
+        "#3B82F6",  # blue
+        "#A855F7",  # purple
+    ]
+    digest = hashlib.sha256(tag_name.encode("utf-8")).hexdigest()
+    index = int(digest[:8], 16) % len(palette)
+    return palette[index]
+
+
 def _load_user_tag_names(supabase, user_id: str) -> list[str]:
     """Load existing tag names for a user for AI reuse biasing."""
     try:
@@ -82,8 +124,11 @@ def _load_user_tag_names(supabase, user_id: str) -> list[str]:
     return names
 
 
-def _normalize_and_prioritize_tags(raw_tags: list, existing_tag_names: list[str] | None = None) -> list[str]:
-    """Normalize AI tags to kebab-case and prioritize matching existing user tags."""
+def _normalize_and_prioritize_tags(
+    raw_tags: list,
+    existing_tag_names: list[str] | None = None,
+) -> tuple[list[str], dict[str, str]]:
+    """Normalize AI tags and return (tag_names, tag_colors) keyed by normalized tag name."""
     existing_by_normalized: dict[str, str] = {}
     for existing in existing_tag_names or []:
         normalized_existing = _normalize_tag_name(existing)
@@ -91,8 +136,16 @@ def _normalize_and_prioritize_tags(raw_tags: list, existing_tag_names: list[str]
             existing_by_normalized[normalized_existing] = normalized_existing
 
     tags: list[str] = []
+    tag_colors: dict[str, str] = {}
     for raw in raw_tags:
-        normalized = _normalize_tag_name(str(raw))
+        color_hex: str | None = None
+
+        if isinstance(raw, dict):
+            normalized = _normalize_tag_name(str(raw.get("name") or ""))
+            color_hex = _normalize_color_hex(str(raw.get("color_hex") or ""))
+        else:
+            normalized = _normalize_tag_name(str(raw))
+
         if not normalized:
             continue
 
@@ -100,7 +153,25 @@ def _normalize_and_prioritize_tags(raw_tags: list, existing_tag_names: list[str]
         if chosen not in tags:
             tags.append(chosen)
 
-    return tags[:10]
+        if chosen not in tag_colors:
+            tag_colors[chosen] = color_hex or _fallback_color_for_tag(chosen)
+
+    tags = tags[:10]
+    filtered_colors = {tag: tag_colors.get(tag, _fallback_color_for_tag(tag)) for tag in tags}
+    return tags, filtered_colors
+
+
+def _extract_raw_tags(payload: dict) -> list:
+    """Extract raw tags from known payload key variants."""
+    if not isinstance(payload, dict):
+        return []
+
+    for key in ("tags", "tag_suggestions", "labels", "keywords"):
+        value = payload.get(key)
+        if isinstance(value, list):
+            return value
+
+    return []
 
 
 def _build_visual_reference_prompt(existing_tag_names: list[str] | None = None) -> str:
@@ -124,11 +195,12 @@ def _build_visual_reference_prompt(existing_tag_names: list[str] | None = None) 
     return (
         "You are tagging an image for a visual reference library used by photographers, designers, and artists.\n"
         "Return a JSON object with exactly two keys:\n"
-        '- "tags": an array of 8 concise tags (1-3 words each, lowercase, English, kebab-case)\n'
+        '- "tags": an array of 8 objects shaped as {"name": "kebab-case-tag", "color_hex": "#RRGGBB"}\n'
         '- "description": one short sentence describing the image in visual-reference terms\n'
         "Tagging rules:\n"
         "- prioritize tags that help visual search and moodboard curation\n"
         "- tags must use kebab-case and never contain spaces (use '-' instead)\n"
+        "- each tag object must include a valid #RRGGBB color for UI badge display\n"
         "- focus tags on these dimensions (when clearly visible): subject, style, color, pose, type of design\n"
         "- include at least one tag for subject and one for style whenever possible\n"
         "- include color information as specific color or palette tags (for example: monochrome, pastel palette, red and black)\n"
@@ -194,21 +266,25 @@ async def tag_image(
 
 def _parse_gemini_tags(raw_text: str, existing_tag_names: list[str] | None = None) -> TagSuggestion:
     """Parse the Gemini response text into a TagSuggestion."""
-    raw = raw_text.strip()
-    if raw.startswith("```"):
-        raw = raw.split("\n", 1)[1] if "\n" in raw else raw[3:]
-        if raw.endswith("```"):
-            raw = raw[:-3].strip()
-
     try:
-        data = json.loads(raw)
-        tags = _normalize_and_prioritize_tags(data.get("tags", []), existing_tag_names)
-        description = str(data.get("description", ""))
-    except (json.JSONDecodeError, KeyError):
-        logger.warning(f"Failed to parse Gemini response: {raw}")
+        data = _extract_json_payload(raw_text)
+        raw_tags = _extract_raw_tags(data)
+        tags, tag_colors = _normalize_and_prioritize_tags(raw_tags, existing_tag_names)
+
+        description = str(
+            data.get("description")
+            or data.get("summary")
+            or data.get("caption")
+            or ""
+        )
+
+        if not tags:
+            raise ValueError("No valid tags in AI response")
+    except Exception:
+        logger.warning(f"Failed to parse Gemini response: {raw_text}")
         raise HTTPException(status_code=500, detail="Failed to parse AI response")
 
-    return TagSuggestion(tags=tags, description=description)
+    return TagSuggestion(tags=tags, description=description, tag_colors=tag_colors)
 
 
 def _extract_json_payload(raw_text: str) -> dict:

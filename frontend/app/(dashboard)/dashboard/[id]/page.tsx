@@ -7,7 +7,7 @@ import { BackButton } from "@/app/components/ui/BackButton";
 import { LoadingCircle } from "@/app/components/ui/LoadingCircle";
 import { ImagePreview } from "@/app/components/dashboard/images/ImagePreview";
 import { ImageDetailsForm } from "@/app/components/dashboard/images/ImageDetailsForm";
-import { type Photo, fetchPhotos, updatePhoto, getAiTagsForPhoto } from "@/app/lib/photos";
+import { type Photo, fetchPhoto, fetchPhotos, updatePhoto, getAiTagsForPhoto } from "@/app/lib/photos";
 import {
   type Tag,
   getPhotoTags,
@@ -20,6 +20,7 @@ import {
   fetchCollectionsForPhoto,
   type Collection,
 } from "@/app/lib/collections";
+import { getDeterministicTagColor } from "@/app/lib/color";
 import { dispatchSidebarCountsChanged } from "@/app/lib/events";
 
 const DEFAULT_COLOR = "#3B82F6";
@@ -59,23 +60,54 @@ export default function ImageDetailPage() {
   >(new Map());
   const allTagsFetched = useRef(false);
 
-  // ── 1. Fetch the photo list ONCE and cache it ──
   useEffect(() => {
-    if (photosLoaded) return;
+    setCurrentId(params.id);
+  }, [params.id]);
+
+  // ── 1. Load current photo fast, then hydrate full photo list for prev/next ──
+  useEffect(() => {
     const token = localStorage.getItem("access_token");
     if (!token) {
       setInitialLoading(false);
       return;
     }
 
-    fetchPhotos(token)
-      .then((photos) => {
-        setAllPhotos(photos);
-        setPhotosLoaded(true);
-      })
-      .catch((err) => console.error("Failed to load photos:", err))
-      .finally(() => setInitialLoading(false));
-  }, [photosLoaded]);
+    let cancelled = false;
+
+    const bootstrapDetail = async () => {
+      try {
+        const currentPhoto = await fetchPhoto(token, Number(params.id));
+        if (cancelled) return;
+
+        setAllPhotos((prev) => {
+          const others = prev.filter((p) => p.id !== currentPhoto.id);
+          return [currentPhoto, ...others];
+        });
+      } catch (err) {
+        console.error("Failed to load current photo:", err);
+      } finally {
+        if (!cancelled) {
+          setInitialLoading(false);
+        }
+      }
+
+      if (photosLoaded || cancelled) return;
+
+      fetchPhotos(token)
+        .then((photos) => {
+          if (cancelled) return;
+          setAllPhotos(photos);
+          setPhotosLoaded(true);
+        })
+        .catch((err) => console.error("Failed to load photos:", err));
+    };
+
+    bootstrapDetail();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [params.id, photosLoaded]);
 
   // Derive current photo & id list from cached list
   const photo = useMemo(
@@ -284,7 +316,8 @@ export default function ImageDetailPage() {
       let tag = knownTagsByName.get(normalizedName);
 
       if (!tag) {
-        tag = await createTag(token, normalizedName, DEFAULT_COLOR);
+        const aiColor = result.tag_colors?.[normalizedName] || getDeterministicTagColor(normalizedName);
+        tag = await createTag(token, normalizedName, aiColor);
         knownTagsByName.set(normalizedName, tag);
         createdTags.push(tag);
       }

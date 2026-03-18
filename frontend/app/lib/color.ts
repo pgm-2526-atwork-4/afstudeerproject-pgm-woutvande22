@@ -1,6 +1,21 @@
 const FALLBACK_TEXT_DARK = "#111827";
 const FALLBACK_TEXT_LIGHT = "#FFFFFF";
 
+const TAG_COLOR_PALETTE = [
+  "#0EA5E9",
+  "#22C55E",
+  "#F97316",
+  "#8B5CF6",
+  "#EC4899",
+  "#EAB308",
+  "#14B8A6",
+  "#F43F5E",
+  "#84CC16",
+  "#06B6D4",
+  "#3B82F6",
+  "#A855F7",
+];
+
 function normalizeHexColor(color: string): string | null {
   const value = color.trim().replace("#", "");
 
@@ -17,6 +32,18 @@ function normalizeHexColor(color: string): string | null {
   }
 
   return null;
+}
+
+export function getDeterministicTagColor(tagName: string): string {
+  const input = tagName.trim().toLowerCase();
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash << 5) - hash + input.charCodeAt(i);
+    hash |= 0;
+  }
+
+  const index = Math.abs(hash) % TAG_COLOR_PALETTE.length;
+  return TAG_COLOR_PALETTE[index];
 }
 
 export function getReadableTextColor(

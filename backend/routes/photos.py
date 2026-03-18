@@ -2,6 +2,7 @@ import logging
 import uuid
 import json
 import re
+import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Body
 from pydantic import BaseModel
@@ -15,6 +16,7 @@ router = APIRouter(prefix="/api/photos", tags=["Photos"])
 BUCKET_NAME = "photos"
 ALLOWED_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"}
 MAX_FILE_SIZE_MB = 10
+LEGACY_GRAY_TAG_COLOR = "#6B7280"
 
 # Schemas
 
@@ -52,6 +54,39 @@ def _normalize_tag_name(value: str) -> str:
     normalized = re.sub(r"[^a-z0-9]+", "-", value.strip().lower())
     normalized = re.sub(r"-+", "-", normalized).strip("-")
     return normalized
+
+
+def _normalize_color_hex(value: str | None) -> str | None:
+    """Normalize tag color to #RRGGBB when valid."""
+    if not value:
+        return None
+
+    raw = str(value).strip().lower()
+    if re.fullmatch(r"#[0-9a-f]{6}", raw):
+        return raw.upper()
+    if re.fullmatch(r"#[0-9a-f]{3}", raw):
+        return ("#" + "".join(ch * 2 for ch in raw[1:])).upper()
+    return None
+
+
+def _fallback_color_for_tag(tag_name: str) -> str:
+    """Generate a deterministic non-gray color for a tag name."""
+    palette = [
+        "#0EA5E9",
+        "#22C55E",
+        "#F97316",
+        "#8B5CF6",
+        "#EC4899",
+        "#EAB308",
+        "#14B8A6",
+        "#F43F5E",
+        "#84CC16",
+        "#06B6D4",
+        "#3B82F6",
+        "#A855F7",
+    ]
+    digest = hashlib.sha256(tag_name.encode("utf-8")).hexdigest()
+    return palette[int(digest[:8], 16) % len(palette)]
 
 
 def _get_current_user(supabase, access_token: str):
@@ -113,6 +148,7 @@ async def upload_photo(
     title: Optional[str] = Query(None),
     description: Optional[str] = Query(None),
     tag_names: Optional[str] = Query(None, description="JSON array of tag names, e.g. '[\"landscape\",\"sunset\"]'"),
+    tag_items: Optional[str] = Query(None, description="JSON array of tag objects, e.g. '[{\"name\":\"landscape\",\"color_hex\":\"#22C55E\"}]'"),
     file: UploadFile = File(...),
 ):
     """Upload a photo to Supabase Storage and create a record in the photos table."""
@@ -218,35 +254,64 @@ async def upload_photo(
         except Exception as e:
             logger.error(f"Failed to link photo to collection: {e}")
 
-    # 10. If tag_names provided, find-or-create tags and link them to the photo
-    if tag_names:
+    # 10. If tags provided, find-or-create tags and link them to the photo
+    if tag_items or tag_names:
         try:
-            names = json.loads(tag_names)
-            if isinstance(names, list):
+            parsed_items = json.loads(tag_items) if tag_items else None
+            parsed_names = json.loads(tag_names) if tag_names else None
+
+            normalized_tags: dict[str, str] = {}
+
+            if isinstance(parsed_items, list):
+                for raw_item in parsed_items:
+                    if isinstance(raw_item, dict):
+                        name = _normalize_tag_name(str(raw_item.get("name") or ""))
+                        color = _normalize_color_hex(str(raw_item.get("color_hex") or ""))
+                    else:
+                        name = _normalize_tag_name(str(raw_item))
+                        color = None
+
+                    if name:
+                        color = color or _fallback_color_for_tag(name)
+
+                    if name and name not in normalized_tags:
+                        normalized_tags[name] = color
+
+            if isinstance(parsed_names, list):
+                for raw_name in parsed_names:
+                    name = _normalize_tag_name(str(raw_name))
+                    if name and name not in normalized_tags:
+                        normalized_tags[name] = _fallback_color_for_tag(name)
+
+            if normalized_tags:
                 # Set auth header for RLS
                 supabase.postgrest.auth(access_token)
 
-                for raw_name in names:
-                    name = _normalize_tag_name(str(raw_name))
-                    if not name:
-                        continue
-
+                for name, color_hex in normalized_tags.items():
                     # Find existing tag for this user
                     existing_tag = safe_maybe_single(
                         supabase.table("tags")
-                        .select("id")
+                        .select("id, color_hex")
                         .eq("name", name)
                         .eq("user_id", user.id)
                     )
 
                     if existing_tag.data:
-                        tag_id = existing_tag.data["id"] if isinstance(existing_tag.data, dict) else existing_tag.data[0]["id"]
+                        existing_row = existing_tag.data if isinstance(existing_tag.data, dict) else existing_tag.data[0]
+                        tag_id = existing_row["id"]
+                        existing_color = _normalize_color_hex(str(existing_row.get("color_hex") or ""))
+
+                        # Upgrade old gray defaults when a better AI color is now available.
+                        if existing_color == LEGACY_GRAY_TAG_COLOR and color_hex != LEGACY_GRAY_TAG_COLOR:
+                            try:
+                                supabase.table("tags").update({"color_hex": color_hex}).eq("id", tag_id).eq("user_id", user.id).execute()
+                            except Exception as e:
+                                logger.warning(f"Failed to update legacy gray color for tag {tag_id}: {e}")
                     else:
-                        # Create the tag with a default color
                         try:
                             new_tag = (
                                 supabase.table("tags")
-                                .insert({"name": name, "color_hex": "#6B7280", "user_id": user.id})
+                                .insert({"name": name, "color_hex": color_hex, "user_id": user.id})
                                 .execute()
                             )
                             tag_id = new_tag.data[0]["id"]
@@ -272,12 +337,11 @@ async def upload_photo(
                             "tag_id": tag_id,
                         }).execute()
                     except Exception as e:
-                        # Duplicate links are harmless, but log any DB errors for easier debugging.
                         logger.warning(
                             f"Failed to link tag {tag_id} to photo {photo['id']}: {e}"
                         )
         except json.JSONDecodeError:
-            logger.warning(f"Invalid tag_names JSON: {tag_names}")
+            logger.warning(f"Invalid tag payload JSON (tag_items={tag_items}, tag_names={tag_names})")
         except Exception as e:
             logger.error(f"Failed to process tags during upload: {e}")
 

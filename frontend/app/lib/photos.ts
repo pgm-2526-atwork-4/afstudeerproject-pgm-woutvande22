@@ -19,13 +19,19 @@ export interface FetchPhotosPageResponse {
   has_more?: boolean;
 }
 
+export interface UploadTagItem {
+  name: string;
+  color_hex?: string;
+}
+
 export async function uploadPhoto(
   accessToken: string,
   file: File,
   collectionId?: number,
   title?: string,
   tagNames?: string[],
-  description?: string
+  description?: string,
+  tagItems?: UploadTagItem[]
 ): Promise<Photo> {
   const formData = new FormData();
   formData.append("file", file);
@@ -35,6 +41,9 @@ export async function uploadPhoto(
   if (title) params.append("title", title);
   if (tagNames && tagNames.length > 0) {
     params.append("tag_names", JSON.stringify(tagNames));
+  }
+  if (tagItems && tagItems.length > 0) {
+    params.append("tag_items", JSON.stringify(tagItems));
   }
   if (description) params.append("description", description);
 
@@ -60,6 +69,22 @@ export async function fetchPhotos(accessToken: string): Promise<Photo[]> {
 
   const data = await res.json();
   return data.photos;
+}
+
+export async function fetchPhoto(
+  accessToken: string,
+  photoId: number
+): Promise<Photo> {
+  const res = await fetch(
+    `${API_URL}/api/photos/${photoId}?access_token=${encodeURIComponent(accessToken)}`
+  );
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.detail || "Failed to fetch photo");
+  }
+
+  return res.json();
 }
 
 export async function fetchPhotosPage(
@@ -144,6 +169,7 @@ export async function updatePhoto(
 export interface TagSuggestion {
   tags: string[];
   description: string;
+  tag_colors?: Record<string, string>;
 }
 
 export async function getAiTagSuggestions(
