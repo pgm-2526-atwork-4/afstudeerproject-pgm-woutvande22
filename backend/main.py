@@ -1,4 +1,6 @@
 # backend/main.py
+import os
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -11,7 +13,14 @@ from routes.collections import router as collections_router
 from routes.moodboards import router as moodboards_router
 from routes.ai import router as ai_router
 
-app = FastAPI(title="AI Image Tagger & Moodboarder API")
+is_production = os.getenv("ENV", "development").lower() == "production"
+
+app = FastAPI(
+    title="AI Image Tagger & Moodboarder API",
+    docs_url=None if is_production else "/docs",
+    redoc_url=None if is_production else "/redoc",
+    openapi_url=None if is_production else "/openapi.json",
+)
 
 app.add_middleware(
     CORSMiddleware,
