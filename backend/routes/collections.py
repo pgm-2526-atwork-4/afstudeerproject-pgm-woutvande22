@@ -49,6 +49,14 @@ class ReorderCollectionPhotosRequest(BaseModel):
     photos: list[ReorderCollectionItem]
 
 
+class PhotoCollectionCountsRequest(BaseModel):
+    photo_ids: list[int]
+
+
+class PhotoCollectionCountsResponse(BaseModel):
+    counts: dict[str, int]
+
+
 # ──────────────────────────── Helpers ────────────────────────────
 
 def _get_current_user(supabase, access_token: str):
@@ -233,6 +241,56 @@ def list_collections(access_token: str = Query(...)):
         for row in rows
     ]
     return CollectionListResponse(collections=collections, count=len(collections))
+
+
+@router.post("/photo-counts", response_model=PhotoCollectionCountsResponse)
+def get_photo_collection_counts(
+    access_token: str = Query(...),
+    body: PhotoCollectionCountsRequest = Body(...),
+):
+    """Return how many collections contain each requested photo."""
+    supabase = get_supabase()
+    user = _get_current_user(supabase, access_token)
+
+    requested_ids = list(dict.fromkeys(body.photo_ids))
+    if not requested_ids:
+        return PhotoCollectionCountsResponse(counts={})
+
+    try:
+        owned = (
+            supabase.table("photos")
+            .select("id")
+            .eq("user_id", user.id)
+            .in_("id", requested_ids)
+            .execute()
+        )
+    except Exception as e:
+        logger.error(f"Failed to verify photo ownership for counts: {e}")
+        raise HTTPException(status_code=500, detail="Failed to load photo ownership")
+
+    owned_ids = {row["id"] for row in (owned.data or [])}
+    count_map: dict[str, int] = {str(photo_id): 0 for photo_id in requested_ids}
+
+    if not owned_ids:
+        return PhotoCollectionCountsResponse(counts=count_map)
+
+    try:
+        links = (
+            supabase.table("collections_to_photos")
+            .select("photo_id")
+            .in_("photo_id", list(owned_ids))
+            .execute()
+        )
+    except Exception as e:
+        logger.error(f"Failed to load collection-photo links for counts: {e}")
+        raise HTTPException(status_code=500, detail="Failed to load collection counts")
+
+    for link in links.data or []:
+        key = str(link["photo_id"])
+        if key in count_map:
+            count_map[key] += 1
+
+    return PhotoCollectionCountsResponse(counts=count_map)
 
 
 # ──────────────────── Create a collection ────────────────────────

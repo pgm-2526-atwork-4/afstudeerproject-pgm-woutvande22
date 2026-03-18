@@ -140,6 +140,27 @@ export interface CollectionPhoto {
   title?: string;
 }
 
+export async function fetchPhotoCollectionCounts(
+  accessToken: string,
+  photoIds: number[]
+): Promise<Record<string, number>> {
+  if (photoIds.length === 0) return {};
+
+  const res = await fetch(
+    `${API_URL}/api/collections/photo-counts?access_token=${encodeURIComponent(accessToken)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ photo_ids: photoIds }),
+    }
+  );
+
+  if (!res.ok) throw new Error("Failed to fetch photo collection counts");
+
+  const data = await res.json();
+  return data.counts ?? {};
+}
+
 export async function fetchCollectionPhotos(
   accessToken: string,
   collectionId: number

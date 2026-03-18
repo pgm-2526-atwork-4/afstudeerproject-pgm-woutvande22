@@ -9,7 +9,7 @@ import { ImageViewModeToggle, type ImageViewMode } from "@/app/components/dashbo
 import { BulkActionBar } from "@/app/components/dashboard/images/BulkActionBar";
 import { GenerateCollectionButton } from "@/app/components/dashboard/collections/GenerateCollectionButton";
 import { fetchPhotos, reorderPhotos } from "@/app/lib/photos";
-import { fetchCollections, fetchCollectionPhotos } from "@/app/lib/collections";
+import { fetchPhotoCollectionCounts } from "@/app/lib/collections";
 import { fetchBatchPhotoTags, fetchTags, type Tag } from "@/app/lib/tags";
 import { ImageGridSkeleton } from "@/app/components/dashboard/images/ImageCardSkeleton";
 
@@ -40,27 +40,21 @@ export default function DashboardPage() {
     }
 
     try {
-      const [photos, userTags, collections] = await Promise.all([
+      const [photos, userTags] = await Promise.all([
         fetchPhotos(token),
         fetchTags(token),
-        fetchCollections(token),
       ]);
 
       setTags(userTags);
 
-      const collectionPhotoSets = await Promise.all(
-        collections.map(async (collection) => {
-          const collectionPhotos = await fetchCollectionPhotos(token, collection.id);
-          return collectionPhotos.map((photo) => photo.id);
-        })
-      );
+      const photoIds = photos.map((p) => p.id);
+      let collectionCountByPhotoId: Record<string, number> = {};
 
-      const collectionCountByPhotoId = new Map<string, number>();
-
-      for (const photoIds of collectionPhotoSets) {
-        for (const photoId of photoIds) {
-          const key = String(photoId);
-          collectionCountByPhotoId.set(key, (collectionCountByPhotoId.get(key) ?? 0) + 1);
+      if (photoIds.length > 0) {
+        try {
+          collectionCountByPhotoId = await fetchPhotoCollectionCounts(token, photoIds);
+        } catch (err) {
+          console.error("Failed to load collection counts:", err);
         }
       }
 
@@ -68,14 +62,13 @@ export default function DashboardPage() {
         id: String(p.id),
         url: p.url,
         label: p.title || `Photo ${p.id}`,
-        hasCollection: collectionCountByPhotoId.has(String(p.id)),
-        collectionCount: collectionCountByPhotoId.get(String(p.id)) ?? 0,
+        hasCollection: (collectionCountByPhotoId[String(p.id)] ?? 0) > 0,
+        collectionCount: collectionCountByPhotoId[String(p.id)] ?? 0,
       }));
 
       // Fetch tags for all photos in one batch request
       if (photos.length > 0) {
         try {
-          const photoIds = photos.map((p) => p.id);
           const tagMap = await fetchBatchPhotoTags(token, photoIds);
           for (const item of items) {
             const photoTags = tagMap[item.id];
