@@ -11,11 +11,14 @@ import { AddPhotoAlternateOutlined, CollectionsOutlined } from "@mui/icons-mater
 import { TagFilterDropdown, TagSearchInput } from "@/app/components/ui/TagFilterDropdown";
 import {
   fetchCollection,
-  fetchCollectionPhotos,
+  fetchCollectionPhotosPage,
   type Collection,
+  type CollectionPhoto,
 } from "@/app/lib/collections";
 import { fetchBatchPhotoTags, fetchTags, type Tag } from "@/app/lib/tags";
 import { ImageGridSkeleton } from "@/app/components/dashboard/images/ImageCardSkeleton";
+
+const COLLECTION_PHOTOS_PAGE_SIZE = 80;
 
 interface CollectionDetailContentProps {
   collectionId: string;
@@ -34,6 +37,9 @@ export function CollectionDetailContent({
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [viewMode, setViewMode] = useState<ImageViewMode>("cards");
+  const [nextOffset, setNextOffset] = useState<number | null>(null);
+  const [hasMorePhotos, setHasMorePhotos] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const numericId = Number(collectionId);
 
@@ -46,20 +52,8 @@ export function CollectionDetailContent({
     });
   }, []);
 
-  const loadData = useCallback(async () => {
-    const token = localStorage.getItem("access_token");
-    if (!token || isNaN(numericId)) return;
-
-    try {
-      const [col, photos, userTags] = await Promise.all([
-        fetchCollection(token, numericId),
-        fetchCollectionPhotos(token, numericId),
-        fetchTags(token),
-      ]);
-
-      setCollection(col);
-      setTags(userTags);
-
+  const mapCollectionPhotosToImageItems = useCallback(
+    async (token: string, photos: CollectionPhoto[]): Promise<ImageItem[]> => {
       const items: ImageItem[] = photos.map((p) => ({
         id: String(p.id),
         label: p.title ?? undefined,
@@ -67,7 +61,6 @@ export function CollectionDetailContent({
         tags: [],
       }));
 
-      // Fetch tags for photos in this collection
       if (photos.length > 0) {
         try {
           const photoIds = photos.map((p) => p.id);
@@ -83,13 +76,39 @@ export function CollectionDetailContent({
         }
       }
 
+      return items;
+    },
+    []
+  );
+
+  const loadData = useCallback(async () => {
+    const token = localStorage.getItem("access_token");
+    if (!token || isNaN(numericId)) return;
+
+    try {
+      const [col, photosPage, userTags] = await Promise.all([
+        fetchCollection(token, numericId),
+        fetchCollectionPhotosPage(token, numericId, {
+          limit: COLLECTION_PHOTOS_PAGE_SIZE,
+          offset: 0,
+        }),
+        fetchTags(token),
+      ]);
+
+      setCollection(col);
+      setTags(userTags);
+
+      const items = await mapCollectionPhotosToImageItems(token, photosPage.photos ?? []);
+
       setImages(items);
+      setHasMorePhotos(Boolean(photosPage.has_more));
+      setNextOffset(typeof photosPage.next_offset === "number" ? photosPage.next_offset : null);
     } catch (err) {
       console.error("Failed to load collection:", err);
     } finally {
       setLoading(false);
     }
-  }, [numericId]);
+  }, [mapCollectionPhotosToImageItems, numericId]);
 
   useEffect(() => {
     loadData();
@@ -107,6 +126,36 @@ export function CollectionDetailContent({
   const handleUploadSuccess = () => {
     loadData();
   };
+
+  const loadMorePhotos = useCallback(async () => {
+    if (isLoadingMore || !hasMorePhotos || nextOffset === null) return;
+
+    const token = localStorage.getItem("access_token");
+    if (!token || isNaN(numericId)) return;
+
+    setIsLoadingMore(true);
+    try {
+      const photosPage = await fetchCollectionPhotosPage(token, numericId, {
+        limit: COLLECTION_PHOTOS_PAGE_SIZE,
+        offset: nextOffset,
+      });
+
+      const nextItems = await mapCollectionPhotosToImageItems(token, photosPage.photos ?? []);
+
+      setImages((prev) => {
+        const existingIds = new Set(prev.map((item) => item.id));
+        const deduped = nextItems.filter((item) => !existingIds.has(item.id));
+        return [...prev, ...deduped];
+      });
+
+      setHasMorePhotos(Boolean(photosPage.has_more));
+      setNextOffset(typeof photosPage.next_offset === "number" ? photosPage.next_offset : null);
+    } catch (err) {
+      console.error("Failed to load more collection photos:", err);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [hasMorePhotos, isLoadingMore, mapCollectionPhotosToImageItems, nextOffset, numericId]);
 
   const filteredImages = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
@@ -228,6 +277,9 @@ export function CollectionDetailContent({
             onToggleSelect={toggleSelect}
             onReorder={setImages}
             onDelete={handleDelete}
+            hasMoreFromServer={hasMorePhotos}
+            isLoadingMore={isLoadingMore}
+            onLoadMore={loadMorePhotos}
           />
         )}
       </div>

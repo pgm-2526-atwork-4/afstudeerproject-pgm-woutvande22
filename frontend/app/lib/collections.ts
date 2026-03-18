@@ -140,6 +140,14 @@ export interface CollectionPhoto {
   title?: string;
 }
 
+export interface FetchCollectionPhotosPageResponse {
+  photos: CollectionPhoto[];
+  count: number;
+  total_count?: number;
+  next_offset?: number | null;
+  has_more?: boolean;
+}
+
 export async function fetchPhotoCollectionCounts(
   accessToken: string,
   photoIds: number[]
@@ -173,6 +181,26 @@ export async function fetchCollectionPhotos(
 
   const data = await res.json();
   return data.photos;
+}
+
+export async function fetchCollectionPhotosPage(
+  accessToken: string,
+  collectionId: number,
+  options: { limit: number; offset?: number }
+): Promise<FetchCollectionPhotosPageResponse> {
+  const params = new URLSearchParams({
+    access_token: accessToken,
+    limit: String(options.limit),
+    offset: String(options.offset ?? 0),
+  });
+
+  const res = await fetch(
+    `${API_URL}/api/collections/${collectionId}/photos?${params.toString()}`
+  );
+
+  if (!res.ok) throw new Error("Failed to fetch collection photos");
+
+  return res.json();
 }
 
 export async function addPhotoToCollection(

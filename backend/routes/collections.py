@@ -486,7 +486,12 @@ def delete_collection(collection_id: int, access_token: str = Query(...)):
 # ──────────── Get photos in a collection ─────────────────────────
 
 @router.get("/{collection_id}/photos")
-def get_collection_photos(collection_id: int, access_token: str = Query(...)):
+def get_collection_photos(
+    collection_id: int,
+    access_token: str = Query(...),
+    limit: Optional[int] = Query(None, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
     """Return all photos that belong to a collection, ordered by order_id."""
     supabase = get_supabase()
     user = _get_current_user(supabase, access_token)
@@ -502,16 +507,26 @@ def get_collection_photos(collection_id: int, access_token: str = Query(...)):
         raise HTTPException(status_code=404, detail="Collection not found")
 
     try:
-        links = (
+        links_query = (
             supabase.table("collections_to_photos")
-            .select("photo_id, order_id")
+            .select("photo_id, order_id", count="exact")
             .eq("collection_id", collection_id)
             .order("order_id")
-            .execute()
         )
 
+        if limit is not None:
+            links_query = links_query.range(offset, offset + limit - 1)
+
+        links = links_query.execute()
+
         if not links.data:
-            return {"photos": [], "count": 0}
+            return {
+                "photos": [],
+                "count": 0,
+                "total_count": links.count if isinstance(links.count, int) else 0,
+                "next_offset": None,
+                "has_more": False,
+            }
 
         photo_ids = [link["photo_id"] for link in links.data]
 
@@ -526,7 +541,24 @@ def get_collection_photos(collection_id: int, access_token: str = Query(...)):
         order_map = {link["photo_id"]: link["order_id"] for link in links.data}
         sorted_photos = sorted(photos.data, key=lambda p: order_map.get(p["id"], 0))
 
-        return {"photos": sorted_photos, "count": len(sorted_photos)}
+        total_count = links.count if isinstance(links.count, int) else None
+
+        if limit is None:
+            has_more = False
+            next_offset = None
+        else:
+            has_more = len(sorted_photos) == limit and (
+                total_count is None or (offset + len(sorted_photos) < total_count)
+            )
+            next_offset = offset + len(sorted_photos) if has_more else None
+
+        return {
+            "photos": sorted_photos,
+            "count": len(sorted_photos),
+            "total_count": total_count,
+            "next_offset": next_offset,
+            "has_more": has_more,
+        }
     except Exception as e:
         logger.error(f"Failed to get collection photos: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch collection photos")
