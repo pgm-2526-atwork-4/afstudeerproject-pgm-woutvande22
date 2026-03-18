@@ -108,16 +108,78 @@ def _get_cover_image_url(supabase, collection_id: int) -> Optional[str]:
         return None
 
 
+def _build_collection_metrics(
+    supabase,
+    collection_ids: list[int],
+) -> tuple[dict[int, int], dict[int, Optional[str]]]:
+    """Return count and cover-url maps for a set of collection IDs with batched queries."""
+    if not collection_ids:
+        return {}, {}
+
+    count_map = {collection_id: 0 for collection_id in collection_ids}
+    cover_url_map = {collection_id: None for collection_id in collection_ids}
+
+    try:
+        links = (
+            supabase.table("collections_to_photos")
+            .select("collection_id, photo_id, order_id")
+            .in_("collection_id", collection_ids)
+            .order("order_id")
+            .execute()
+        )
+    except Exception as e:
+        logger.warning(f"Failed to load collection metrics in batch: {e}")
+        return count_map, cover_url_map
+
+    first_photo_by_collection: dict[int, int] = {}
+
+    for link in links.data or []:
+        collection_id = link["collection_id"]
+        photo_id = link["photo_id"]
+
+        count_map[collection_id] = count_map.get(collection_id, 0) + 1
+        if collection_id not in first_photo_by_collection:
+            first_photo_by_collection[collection_id] = photo_id
+
+    if not first_photo_by_collection:
+        return count_map, cover_url_map
+
+    first_photo_ids = list(first_photo_by_collection.values())
+
+    try:
+        photos = (
+            supabase.table("photos")
+            .select("id, url")
+            .in_("id", first_photo_ids)
+            .execute()
+        )
+    except Exception as e:
+        logger.warning(f"Failed to load collection cover photos in batch: {e}")
+        return count_map, cover_url_map
+
+    photo_url_map = {
+        photo["id"]: photo.get("url")
+        for photo in (photos.data or [])
+    }
+
+    for collection_id, photo_id in first_photo_by_collection.items():
+        cover_url_map[collection_id] = photo_url_map.get(photo_id)
+
+    return count_map, cover_url_map
+
+
 def _enrich_collection(supabase, row: dict) -> CollectionResponse:
     """Turn a raw DB row into a CollectionResponse with image_count and cover image."""
+    count_map, cover_url_map = _build_collection_metrics(supabase, [row["id"]])
+
     return CollectionResponse(
         id=row["id"],
         title=row["title"],
         user_id=row["user_id"],
         order_id=row.get("order_id", 0),
-        image_count=_get_image_count(supabase, row["id"]),
+        image_count=count_map.get(row["id"], 0),
         pinned=row.get("pinned", False),
-        cover_image_url=_get_cover_image_url(supabase, row["id"]),
+        cover_image_url=cover_url_map.get(row["id"]),
         last_used_at=row.get("last_used_at"),
     )
 
@@ -153,7 +215,23 @@ def list_collections(access_token: str = Query(...)):
         logger.error(f"Failed to list collections: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch collections")
 
-    collections = [_enrich_collection(supabase, row) for row in result.data]
+    rows = result.data or []
+    collection_ids = [row["id"] for row in rows]
+    count_map, cover_url_map = _build_collection_metrics(supabase, collection_ids)
+
+    collections = [
+        CollectionResponse(
+            id=row["id"],
+            title=row["title"],
+            user_id=row["user_id"],
+            order_id=row.get("order_id", 0),
+            image_count=count_map.get(row["id"], 0),
+            pinned=row.get("pinned", False),
+            cover_image_url=cover_url_map.get(row["id"]),
+            last_used_at=row.get("last_used_at"),
+        )
+        for row in rows
+    ]
     return CollectionListResponse(collections=collections, count=len(collections))
 
 
@@ -551,9 +629,22 @@ def get_collections_for_photo(
         .execute()
     )
 
-    collections = []
-    for c in (cols.data or []):
-        enriched = _enrich_collection(supabase, c)
-        collections.append(enriched)
+    rows = cols.data or []
+    collection_ids = [row["id"] for row in rows]
+    count_map, cover_url_map = _build_collection_metrics(supabase, collection_ids)
+
+    collections = [
+        CollectionResponse(
+            id=row["id"],
+            title=row["title"],
+            user_id=row["user_id"],
+            order_id=row.get("order_id", 0),
+            image_count=count_map.get(row["id"], 0),
+            pinned=row.get("pinned", False),
+            cover_image_url=cover_url_map.get(row["id"]),
+            last_used_at=row.get("last_used_at"),
+        )
+        for row in rows
+    ]
 
     return {"collections": collections}
