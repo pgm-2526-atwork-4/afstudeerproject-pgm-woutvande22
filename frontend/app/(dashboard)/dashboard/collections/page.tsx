@@ -82,7 +82,7 @@ export default function CollectionsPage() {
     if (!token) return;
 
     try {
-      const updated = await togglePinCollection(token, id);
+      const updated = await togglePinCollection(token, Number(id));
       setCollections((prev) => {
         const newList = prev.map((c) =>
           c.id === id ? { ...c, pinned: updated.pinned } : c
