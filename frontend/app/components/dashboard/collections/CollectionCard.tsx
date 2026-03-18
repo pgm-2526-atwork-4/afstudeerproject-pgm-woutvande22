@@ -57,18 +57,20 @@ export const CollectionCard = ({
               e.stopPropagation();
               onTogglePin(id);
             }}
-            className={`absolute top-2 right-2 p-1 rounded-full transition-colors cursor-pointer ${
+            className={`absolute top-2 right-2 p-1 rounded-full cursor-pointer transform-gpu transition-[background-color,color,box-shadow,transform] duration-150 ease-out active:scale-90 ${
               pinned
                 ? "bg-white text-sky-500 shadow-sm"
                 : "bg-black/20 text-white/70 hover:bg-black/40 hover:text-white"
             }`}
             title={pinned ? "Unpin collection" : "Pin collection"}
           >
-            {pinned ? (
-              <PushPin fontSize="small" />
-            ) : (
-              <PushPinOutlined fontSize="small" />
-            )}
+            <span className="block transition-transform duration-200 ease-out active:scale-95">
+              {pinned ? (
+                <PushPin fontSize="small" />
+              ) : (
+                <PushPinOutlined fontSize="small" />
+              )}
+            </span>
           </button>
         )}
       </div>
