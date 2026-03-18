@@ -5,6 +5,7 @@ import { SearchOutlined, KeyboardArrowDownOutlined } from "@mui/icons-material";
 import { PageHeader } from "@/app/components/dashboard/layout/PageHeader";
 import { TagRow } from "@/app/components/dashboard/tags/TagRow";
 import { TagForm } from "@/app/components/dashboard/tags/TagForm";
+import { TagBulkActionBar } from "@/app/components/dashboard/tags/TagBulkActionBar";
 import { Modal } from "@/app/components/ui/Modal";
 import { fetchTags, createTag, updateTag, deleteTag } from "@/app/lib/tags";
 import { dispatchSidebarCountsChanged } from "@/app/lib/events";
@@ -23,7 +24,9 @@ export const TagsPage = () => {
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<TagItem | null>(null);
+  const [bulkDeleteTargets, setBulkDeleteTargets] = useState<TagItem[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
 
   const loadTags = useCallback(async () => {
     const token = localStorage.getItem("access_token");
@@ -121,6 +124,72 @@ export const TagsPage = () => {
     }
   };
 
+  const handleBulkDelete = async (targets: TagItem[]) => {
+    const token = localStorage.getItem("access_token");
+    if (!token || targets.length === 0) return;
+
+    setIsDeleting(true);
+    try {
+      const deletions = await Promise.allSettled(
+        targets.map((target) => deleteTag(token, Number(target.id)))
+      );
+
+      const deletedIds = new Set<string>();
+      targets.forEach((target, index) => {
+        if (deletions[index]?.status === "fulfilled") {
+          deletedIds.add(target.id);
+        }
+      });
+
+      if (deletedIds.size > 0) {
+        setTags((prev) => prev.filter((tag) => !deletedIds.has(tag.id)));
+        setSelectedTagIds((prev) => {
+          const next = new Set(prev);
+          for (const id of deletedIds) next.delete(id);
+          return next;
+        });
+        dispatchSidebarCountsChanged();
+      }
+
+      setBulkDeleteTargets([]);
+    } catch (err) {
+      console.error("Failed to delete selected tags:", err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const toggleSelectTag = useCallback((id: string) => {
+    setSelectedTagIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const visibleTagIds = useMemo(() => filteredTags.map((tag) => tag.id), [filteredTags]);
+  const allVisibleSelected = useMemo(
+    () => visibleTagIds.length > 0 && visibleTagIds.every((id) => selectedTagIds.has(id)),
+    [selectedTagIds, visibleTagIds]
+  );
+
+  const handleToggleSelectAllVisible = useCallback(
+    (checked: boolean) => {
+      setSelectedTagIds((prev) => {
+        const next = new Set(prev);
+        for (const id of visibleTagIds) {
+          if (checked) next.add(id);
+          else next.delete(id);
+        }
+        return next;
+      });
+    },
+    [visibleTagIds]
+  );
+
+  const selectedCount = selectedTagIds.size;
+
   return (
     <section className="pb-24">
       <div className="sticky top-0 z-10 px-8 pt-8 pb-4 bg-gray-50/80 backdrop-blur-md">
@@ -175,6 +244,18 @@ export const TagsPage = () => {
       </div>
 
       <div className="px-8 mt-4">
+        <TagBulkActionBar
+          selectedCount={selectedCount}
+          visibleCount={filteredTags.length}
+          allVisibleSelected={allVisibleSelected}
+          onToggleSelectAllVisible={handleToggleSelectAllVisible}
+          onClearSelection={() => setSelectedTagIds(new Set())}
+          onDeleteSelected={() => {
+            const targets = tags.filter((tag) => selectedTagIds.has(tag.id));
+            setBulkDeleteTargets(targets);
+          }}
+          disabled={loading || isDeleting}
+        />
 
         {creating && (
           <div className="mb-4">
@@ -202,8 +283,11 @@ export const TagsPage = () => {
               ) : (
                 <TagRow
                   key={tag.id}
+                  id={tag.id}
                   name={tag.name}
                   color={tag.color}
+                  selected={selectedTagIds.has(tag.id)}
+                  onToggleSelect={toggleSelectTag}
                   onEdit={() => {
                     setEditingId(tag.id);
                     setCreating(false);
@@ -263,6 +347,59 @@ export const TagsPage = () => {
               className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
             >
               {isDeleting ? "Deleting…" : "Delete Tag"}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={bulkDeleteTargets.length > 0}
+        onClose={() => setBulkDeleteTargets([])}
+        title="Delete Selected Tags"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-3 border rounded-lg bg-amber-50 border-amber-200">
+            <svg className="w-5 h-5 shrink-0 mt-0.5 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <p className="text-sm text-amber-800">
+              This will permanently delete <strong>{bulkDeleteTargets.length}</strong> selected tags and remove them from all images. This action cannot be undone.
+            </p>
+          </div>
+          <div className="max-h-40 overflow-y-auto rounded-lg border border-gray-200 p-2 bg-gray-50">
+            <ul className="flex flex-wrap gap-2" role="list" aria-label="Selected tags to delete">
+              {bulkDeleteTargets.map((tag) => (
+                <li key={tag.id}>
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold text-white"
+                    style={{ backgroundColor: tag.color }}
+                  >
+                    {tag.name}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setBulkDeleteTargets([])}
+              disabled={isDeleting}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => handleBulkDelete(bulkDeleteTargets)}
+              disabled={isDeleting}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {isDeleting ? "Deleting..." : "Delete Selected"}
             </button>
           </div>
         </div>

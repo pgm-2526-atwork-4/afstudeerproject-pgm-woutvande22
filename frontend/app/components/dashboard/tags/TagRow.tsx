@@ -1,16 +1,29 @@
 "use client";
 
 interface TagRowProps {
+  id?: string;
   name: string;
   color: string;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-export const TagRow = ({ name, color, onEdit, onDelete }: TagRowProps) => (
+export const TagRow = ({ id, name, color, selected = false, onToggleSelect, onEdit, onDelete }: TagRowProps) => (
   <li className="flex items-center gap-4 px-5 py-3.5 bg-white rounded-xl border border-gray-200">
+    {id && onToggleSelect && (
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={() => onToggleSelect(id)}
+        className="h-4 w-4 rounded border-gray-300 text-sky-500 focus:ring-sky-400"
+        aria-label={`Select ${name}`}
+      />
+    )}
+
     <span
-      className="w-8 h-8 rounded-md flex-shrink-0"
+      className="w-8 h-8 rounded-md shrink-0"
       style={{ backgroundColor: color }}
       aria-hidden="true"
     />
