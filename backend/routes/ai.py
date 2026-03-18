@@ -14,6 +14,13 @@ router = APIRouter(prefix="/api/ai", tags=["AI"])
 
 ALLOWED_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"}
 
+GENERIC_TOKENS = {
+    "a", "about", "after", "all", "also", "an", "and", "any", "are", "as", "at", "be",
+    "before", "by", "can", "for", "from", "has", "have", "in", "into", "is", "it",
+    "its", "my", "of", "on", "or", "our", "that", "the", "their", "this", "to", "with",
+    "you", "your", "image", "images", "photo", "photos", "picture", "pictures", "collection",
+}
+
 # Configure Gemini client
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
@@ -161,7 +168,7 @@ def _tokenize_text(value: str) -> set[str]:
     return {
         token
         for token in re.findall(r"[a-z0-9]+", value.lower())
-        if len(token) > 2
+        if len(token) > 2 and token not in GENERIC_TOKENS
     }
 
 
@@ -302,7 +309,8 @@ def _build_collection_suggestion(supabase, user_id: str, prompt: str, max_photos
     for tag in selected_tags:
         selected_tag_tokens.update(_tokenize_text(tag))
 
-    candidate_photos: list[dict] = []
+    tag_matched_candidates: list[dict] = []
+    text_only_candidates: list[dict] = []
     for photo in owned_photos:
         photo_id = int(photo["id"])
         tag_score = score_by_photo.get(photo_id, 0)
@@ -314,16 +322,20 @@ def _build_collection_suggestion(supabase, user_id: str, prompt: str, max_photos
         tag_word_overlap = len(selected_tag_tokens.intersection(text_tokens))
         text_score = prompt_overlap + tag_word_overlap
 
-        # Keep photos with tag relevance or text relevance.
-        if tag_score > 0 or text_score > 0:
-            weighted_score = (tag_score * 3) + text_score
-            candidate_photos.append(
-                {
-                    "id": photo_id,
-                    "order_id": int(photo.get("order_id") or 0),
-                    "score": weighted_score,
-                }
-            )
+        weighted_score = (tag_score * 3) + text_score
+        candidate = {
+            "id": photo_id,
+            "order_id": int(photo.get("order_id") or 0),
+            "score": weighted_score,
+        }
+
+        # Prefer direct tag matches. Only allow text-only matches when overlap is meaningful.
+        if tag_score > 0:
+            tag_matched_candidates.append(candidate)
+        elif text_score >= 2:
+            text_only_candidates.append(candidate)
+
+    candidate_photos = tag_matched_candidates if tag_matched_candidates else text_only_candidates
 
     if not candidate_photos:
         raise HTTPException(status_code=404, detail="No photos matched the generated tags or prompt text")
