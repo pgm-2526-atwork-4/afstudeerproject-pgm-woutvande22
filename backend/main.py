@@ -15,6 +15,21 @@ from routes.ai import router as ai_router
 
 is_production = os.getenv("ENV", "development").lower() == "production"
 
+
+def _get_allowed_origins() -> list[str]:
+    """Build the CORS allowlist from env while preserving local dev defaults."""
+    defaults = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+
+    configured = os.getenv("CORS_ORIGINS", "")
+    parsed = [origin.strip().rstrip("/") for origin in configured.split(",") if origin.strip()]
+
+    merged = defaults + parsed
+    # Preserve order and remove duplicates
+    return list(dict.fromkeys(merged))
+
 app = FastAPI(
     title="AI Image Tagger & Moodboarder API",
     docs_url=None if is_production else "/docs",
@@ -24,10 +39,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=_get_allowed_origins(),
     allow_methods=["*"],
     allow_headers=["*"],
     allow_credentials=True,
