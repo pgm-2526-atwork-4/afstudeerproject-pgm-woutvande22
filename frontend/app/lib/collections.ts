@@ -31,10 +31,15 @@ export async function fetchCollections(
     `${API_URL}/api/collections/?access_token=${encodeURIComponent(accessToken)}`
   );
 
+  // Some deployments can return 404/204 for an empty list; treat these as no collections.
+  if (res.status === 404 || res.status === 204) {
+    return [];
+  }
+
   if (!res.ok) throw new Error("Failed to fetch collections");
 
   const data = await res.json();
-  return data.collections;
+  return Array.isArray(data.collections) ? data.collections : [];
 }
 
 export async function fetchCollection(

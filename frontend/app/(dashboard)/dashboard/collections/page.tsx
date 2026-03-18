@@ -15,6 +15,7 @@ import {
 import { CollectionGridSkeleton } from "@/app/components/dashboard/collections/CollectionCardSkeleton";
 import { COLLECTIONS_CHANGED } from "@/app/lib/events";
 import { GridViewOutlined, ViewListOutlined } from "@mui/icons-material";
+import { EmptyState } from "@/app/components/ui/EmptyState";
 
 export default function CollectionsPage() {
   const [collections, setCollections] = useState<
@@ -155,13 +156,24 @@ export default function CollectionsPage() {
         {loading ? (
           <CollectionGridSkeleton />
         ) : collections.length === 0 ? (
-          <p className="text-sm text-gray-400 mt-10 text-center">
-            No collections yet. Create your first one!
-          </p>
+          <EmptyState
+            title="No collections yet"
+            description="Create your first collection to organize your images."
+            action={(
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(true)}
+                className="px-5 py-2.5 bg-sky-400 hover:bg-sky-500 text-white text-sm font-semibold rounded-lg transition-colors cursor-pointer"
+              >
+                + Create Collection
+              </button>
+            )}
+          />
         ) : filteredCollections.length === 0 ? (
-          <p className="text-sm text-gray-400 mt-10 text-center">
-            No collections match your search.
-          </p>
+          <EmptyState
+            title="No matching collections"
+            description="Try another search term to find a collection."
+          />
         ) : viewMode === "grid" ? (
           <CollectionGrid collections={filteredCollections} onTogglePin={handleTogglePin} />
         ) : (

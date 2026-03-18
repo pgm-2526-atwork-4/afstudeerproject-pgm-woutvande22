@@ -8,6 +8,7 @@ import { ImageGrid, type ImageItem } from "@/app/components/dashboard/images/Ima
 import { ImageViewModeToggle, type ImageViewMode } from "@/app/components/dashboard/images/ImageViewModeToggle";
 import { BulkActionBar } from "@/app/components/dashboard/images/BulkActionBar";
 import { GenerateCollectionButton } from "@/app/components/dashboard/collections/GenerateCollectionButton";
+import { EmptyState } from "@/app/components/ui/EmptyState";
 import { fetchPhotosPage, reorderPhotos, type Photo } from "@/app/lib/photos";
 import { fetchPhotoCollectionCounts } from "@/app/lib/collections";
 import { fetchBatchPhotoTags, fetchTags, type Tag } from "@/app/lib/tags";
@@ -211,9 +212,18 @@ export default function DashboardPage() {
         {loading ? (
           <ImageGridSkeleton />
         ) : images.length === 0 ? (
-          <p className="text-gray-500 text-sm mt-8">No photos yet. Upload your first image!</p>
+          <EmptyState
+            title="No photos yet"
+            description="Upload your first image to start building your library."
+            action={(
+              <UploadButton onUploadSuccess={loadPhotos} />
+            )}
+          />
         ) : filteredImages.length === 0 ? (
-          <p className="text-gray-500 text-sm mt-8">No images match your search.</p>
+          <EmptyState
+            title="No matching images"
+            description="Try a different search term or adjust your filters."
+          />
         ) : (
           <ImageGrid
             images={filteredImages}
