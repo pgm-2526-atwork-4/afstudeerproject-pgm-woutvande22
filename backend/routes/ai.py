@@ -52,15 +52,83 @@ class GenerateCollectionResponse(BaseModel):
     matched_count: int
 
 
-def _build_visual_reference_prompt() -> str:
+def _normalize_tag_name(value: str) -> str:
+    """Normalize a tag to kebab-case."""
+    normalized = re.sub(r"[^a-z0-9]+", "-", value.strip().lower())
+    normalized = re.sub(r"-+", "-", normalized).strip("-")
+    return normalized
+
+
+def _load_user_tag_names(supabase, user_id: str) -> list[str]:
+    """Load existing tag names for a user for AI reuse biasing."""
+    try:
+        result = (
+            supabase.table("tags")
+            .select("name")
+            .eq("user_id", user_id)
+            .order("name")
+            .execute()
+        )
+    except Exception as e:
+        logger.warning(f"Failed to load existing tags for user {user_id}: {e}")
+        return []
+
+    names: list[str] = []
+    for row in result.data or []:
+        raw = str(row.get("name") or "").strip()
+        if raw:
+            names.append(raw)
+
+    return names
+
+
+def _normalize_and_prioritize_tags(raw_tags: list, existing_tag_names: list[str] | None = None) -> list[str]:
+    """Normalize AI tags to kebab-case and prioritize matching existing user tags."""
+    existing_by_normalized: dict[str, str] = {}
+    for existing in existing_tag_names or []:
+        normalized_existing = _normalize_tag_name(existing)
+        if normalized_existing and normalized_existing not in existing_by_normalized:
+            existing_by_normalized[normalized_existing] = normalized_existing
+
+    tags: list[str] = []
+    for raw in raw_tags:
+        normalized = _normalize_tag_name(str(raw))
+        if not normalized:
+            continue
+
+        chosen = existing_by_normalized.get(normalized, normalized)
+        if chosen not in tags:
+            tags.append(chosen)
+
+    return tags[:10]
+
+
+def _build_visual_reference_prompt(existing_tag_names: list[str] | None = None) -> str:
     """Return a prompt optimized for visual-reference workflows (photo/design/art)."""
+    existing_tags_block = ""
+    if existing_tag_names:
+        existing_normalized = []
+        seen = set()
+        for tag in existing_tag_names:
+            normalized = _normalize_tag_name(tag)
+            if normalized and normalized not in seen:
+                seen.add(normalized)
+                existing_normalized.append(normalized)
+
+        if existing_normalized:
+            existing_tags_block = (
+                "- prioritize reusing these existing user tags when semantically equivalent (do not invent a synonym if one already exists): "
+                f"{json.dumps(existing_normalized)}\n"
+            )
+
     return (
         "You are tagging an image for a visual reference library used by photographers, designers, and artists.\n"
         "Return a JSON object with exactly two keys:\n"
-        '- "tags": an array of 8 concise tags (1-3 words each, lowercase, English)\n'
+        '- "tags": an array of 8 concise tags (1-3 words each, lowercase, English, kebab-case)\n'
         '- "description": one short sentence describing the image in visual-reference terms\n'
         "Tagging rules:\n"
         "- prioritize tags that help visual search and moodboard curation\n"
+        "- tags must use kebab-case and never contain spaces (use '-' instead)\n"
         "- focus tags on these dimensions (when clearly visible): subject, style, color, pose, type of design\n"
         "- include at least one tag for subject and one for style whenever possible\n"
         "- include color information as specific color or palette tags (for example: monochrome, pastel palette, red and black)\n"
@@ -69,6 +137,7 @@ def _build_visual_reference_prompt() -> str:
         "- avoid vague tags like 'nice', 'cool', 'beautiful', 'image', 'photo', 'art'\n"
         "- avoid duplicate or near-duplicate tags\n"
         "- only include tags strongly supported by visible content\n"
+        f"{existing_tags_block}"
         "Return ONLY valid JSON, with no markdown fences or extra text."
     )
 
@@ -103,8 +172,10 @@ async def tag_image(
     # 4. Read file content
     content = await file.read()
 
+    existing_tag_names = _load_user_tag_names(supabase, user_response.user.id)
+
     # 5. Send to Gemini
-    prompt = _build_visual_reference_prompt()
+    prompt = _build_visual_reference_prompt(existing_tag_names)
 
     try:
         response = client.models.generate_content(
@@ -118,10 +189,10 @@ async def tag_image(
         logger.error(f"Gemini API error: {e}")
         raise HTTPException(status_code=500, detail="Failed to analyze image with AI")
 
-    return _parse_gemini_tags(response.text)
+    return _parse_gemini_tags(response.text, existing_tag_names)
 
 
-def _parse_gemini_tags(raw_text: str) -> TagSuggestion:
+def _parse_gemini_tags(raw_text: str, existing_tag_names: list[str] | None = None) -> TagSuggestion:
     """Parse the Gemini response text into a TagSuggestion."""
     raw = raw_text.strip()
     if raw.startswith("```"):
@@ -131,7 +202,7 @@ def _parse_gemini_tags(raw_text: str) -> TagSuggestion:
 
     try:
         data = json.loads(raw)
-        tags = [str(t).strip().lower() for t in data.get("tags", [])][:10]
+        tags = _normalize_and_prioritize_tags(data.get("tags", []), existing_tag_names)
         description = str(data.get("description", ""))
     except (json.JSONDecodeError, KeyError):
         logger.warning(f"Failed to parse Gemini response: {raw}")
@@ -551,8 +622,10 @@ async def tag_existing_photo(
         logger.error(f"Failed to download photo {photo_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to download image")
 
+    existing_tag_names = _load_user_tag_names(supabase, user_response.user.id)
+
     # 4. Send to Gemini
-    prompt = _build_visual_reference_prompt()
+    prompt = _build_visual_reference_prompt(existing_tag_names)
 
     try:
         response = client.models.generate_content(
@@ -566,4 +639,4 @@ async def tag_existing_photo(
         logger.error(f"Gemini API error: {e}")
         raise HTTPException(status_code=500, detail="Failed to analyze image with AI")
 
-    return _parse_gemini_tags(response.text)
+    return _parse_gemini_tags(response.text, existing_tag_names)

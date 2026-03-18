@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Modal } from "@/app/components/ui/Modal";
 import { FilePicker } from "./FilePicker";
 import { FormInput } from "@/app/components/ui/FormInput";
@@ -9,6 +9,7 @@ import { LoadingCircle } from "@/app/components/ui/LoadingCircle";
 import { UploadPreviewCarousel } from "./UploadPreviewCarousel";
 import { UploadAnalysisProgressBar } from "./UploadAnalysisProgressBar";
 import { uploadPhoto, getAiTagSuggestions } from "@/app/lib/photos";
+import { fetchTags, type Tag } from "@/app/lib/tags";
 import { dispatchSidebarCountsChanged } from "@/app/lib/events";
 
 interface UploadItem {
@@ -28,6 +29,14 @@ interface UploadImageModalProps {
   collectionId?: number;
 }
 
+const normalizeAiTagName = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
 export const UploadImageModal = ({
   open,
   onClose,
@@ -38,6 +47,15 @@ export const UploadImageModal = ({
   const [activeUploadId, setActiveUploadId] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [existingTags, setExistingTags] = useState<Tag[]>([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+    fetchTags(token)
+      .then(setExistingTags)
+      .catch(() => {});
+  }, []);
 
   const activeUpload = uploadItems.find((item) => item.id === activeUploadId) ?? uploadItems[0] ?? null;
   const hasAiLoading = uploadItems.some((item) => item.aiLoading);
@@ -108,8 +126,31 @@ export const UploadImageModal = ({
     nextItems.forEach((item) => {
       getAiTagSuggestions(token, item.file)
         .then((result) => {
+          const existingByNormalized = new Map<string, Tag>();
+          for (const tag of existingTags) {
+            existingByNormalized.set(normalizeAiTagName(tag.name), tag);
+          }
+
+          const selectedTags: SelectedTag[] = [];
+          const usedNames = new Set<string>();
+
+          for (const rawName of result.tags) {
+            const normalizedName = normalizeAiTagName(rawName);
+            if (!normalizedName) continue;
+
+            const existing = existingByNormalized.get(normalizedName);
+            const nextTag: SelectedTag = existing
+              ? { id: existing.id, name: existing.name, color_hex: existing.color_hex }
+              : { name: normalizedName, color_hex: "#6B7280" };
+
+            const dedupeKey = nextTag.name.toLowerCase();
+            if (usedNames.has(dedupeKey)) continue;
+            usedNames.add(dedupeKey);
+            selectedTags.push(nextTag);
+          }
+
           updateUploadItem(item.id, {
-            selectedTags: result.tags.map((name) => ({ name, color_hex: "#6B7280" })),
+            selectedTags,
             description: result.description || "",
             aiLoading: false,
           });
@@ -119,7 +160,7 @@ export const UploadImageModal = ({
           updateUploadItem(item.id, { aiLoading: false });
         });
     });
-  }, [updateUploadItem, uploadItems]);
+  }, [existingTags, updateUploadItem, uploadItems]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {

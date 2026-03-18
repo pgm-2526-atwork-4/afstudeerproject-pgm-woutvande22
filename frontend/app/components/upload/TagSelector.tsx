@@ -19,6 +19,14 @@ interface TagSelectorProps {
 
 const DEFAULT_COLOR = "#6B7280";
 
+const normalizeTagName = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
 export const TagSelector = ({ selectedTags, onChange }: TagSelectorProps) => {
   const [existingTags, setExistingTags] = useState<Tag[]>([]);
   const [query, setQuery] = useState("");
@@ -46,23 +54,23 @@ export const TagSelector = ({ selectedTags, onChange }: TagSelectorProps) => {
   }, []);
 
   const selectedNames = useMemo(
-    () => new Set(selectedTags.map((t) => t.name.toLowerCase())),
+    () => new Set(selectedTags.map((t) => normalizeTagName(t.name))),
     [selectedTags]
   );
 
   const suggestions = useMemo(() => {
     const q = query.trim().toLowerCase();
     return existingTags.filter(
-      (t) => !selectedNames.has(t.name.toLowerCase()) &&
-        (q === "" || t.name.toLowerCase().includes(q))
+      (t) => !selectedNames.has(normalizeTagName(t.name)) &&
+        (q === "" || normalizeTagName(t.name).includes(q) || t.name.toLowerCase().includes(q))
     );
   }, [existingTags, query, selectedNames]);
 
-  const trimmedQuery = query.trim().toLowerCase();
+  const trimmedQuery = normalizeTagName(query);
   const canCreate =
     trimmedQuery.length > 0 &&
     !selectedNames.has(trimmedQuery) &&
-    !existingTags.some((t) => t.name.toLowerCase() === trimmedQuery);
+    !existingTags.some((t) => normalizeTagName(t.name) === trimmedQuery);
 
   const addTag = useCallback(
     (tag: SelectedTag) => {

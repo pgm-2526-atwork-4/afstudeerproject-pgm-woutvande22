@@ -1,6 +1,7 @@
 import logging
 import uuid
 import json
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from fastapi import APIRouter, HTTPException, UploadFile, File, Query, Body
 from pydantic import BaseModel
@@ -44,6 +45,13 @@ class ReorderRequest(BaseModel):
 class UpdatePhotoRequest(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
+
+
+def _normalize_tag_name(value: str) -> str:
+    """Normalize tag names to kebab-case."""
+    normalized = re.sub(r"[^a-z0-9]+", "-", value.strip().lower())
+    normalized = re.sub(r"-+", "-", normalized).strip("-")
+    return normalized
 
 
 def _get_current_user(supabase, access_token: str):
@@ -219,7 +227,7 @@ async def upload_photo(
                 supabase.postgrest.auth(access_token)
 
                 for raw_name in names:
-                    name = str(raw_name).strip().lower()
+                    name = _normalize_tag_name(str(raw_name))
                     if not name:
                         continue
 

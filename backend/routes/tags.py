@@ -1,4 +1,5 @@
 import logging
+import re
 from fastapi import APIRouter, HTTPException, Query, Body
 from pydantic import BaseModel, ConfigDict
 from typing import Optional
@@ -32,6 +33,13 @@ class CreateTagRequest(BaseModel):
 class UpdateTagRequest(BaseModel):
     name: Optional[str] = None
     color_hex: Optional[str] = None
+
+
+def _normalize_tag_name(value: str) -> str:
+    """Normalize tag names to kebab-case."""
+    normalized = re.sub(r"[^a-z0-9]+", "-", value.strip().lower())
+    normalized = re.sub(r"-+", "-", normalized).strip("-")
+    return normalized
 
 
 def get_current_user(supabase, access_token: str):
@@ -83,7 +91,7 @@ def create_tag(access_token: str = Query(...), body: CreateTagRequest = Body(...
     supabase = get_supabase()
     user = get_current_user(supabase, access_token)
 
-    tag_name = body.name.strip().lower()
+    tag_name = _normalize_tag_name(body.name)
     
     try:
         # Check if tag with same name already exists for this user
@@ -191,7 +199,7 @@ def update_tag(tag_id: int, access_token: str = Query(...), body: UpdateTagReque
         # Build update dict
         update_data = {}
         if body.name is not None:
-            new_name = body.name.strip().lower()
+            new_name = _normalize_tag_name(body.name)
             # Check for duplicate name
             duplicate = safe_maybe_single(
                 supabase.table("tags")

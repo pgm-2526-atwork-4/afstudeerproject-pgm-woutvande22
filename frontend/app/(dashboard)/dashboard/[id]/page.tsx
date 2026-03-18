@@ -24,6 +24,14 @@ import { dispatchSidebarCountsChanged } from "@/app/lib/events";
 
 const DEFAULT_COLOR = "#3B82F6";
 
+const normalizeAiTagName = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
 export default function ImageDetailPage() {
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
@@ -259,12 +267,15 @@ export default function ImageDetailPage() {
     const normalizedNames = Array.from(
       new Set(
         result.tags
-          .map((name) => name.trim().toLowerCase())
+          .map((name) => normalizeAiTagName(name))
           .filter((name) => name.length > 0)
       )
     );
 
-    const knownTagsByName = new Map(allTags.map((tag) => [tag.name.toLowerCase(), tag]));
+    const knownTagsByName = new Map<string, Tag>();
+    for (const tag of allTags) {
+      knownTagsByName.set(normalizeAiTagName(tag.name), tag);
+    }
     const photoTagIds = new Set(photoTags.map((tag) => tag.id));
     const createdTags: Tag[] = [];
     const newlyLinkedTags: Tag[] = [];
