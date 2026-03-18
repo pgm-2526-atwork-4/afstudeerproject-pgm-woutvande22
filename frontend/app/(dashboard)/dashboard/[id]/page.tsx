@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/app/components/dashboard/layout/PageHeader";
 import { BackButton } from "@/app/components/ui/BackButton";
+import { LoadingCircle } from "@/app/components/ui/LoadingCircle";
 import { ImagePreview } from "@/app/components/dashboard/images/ImagePreview";
 import { ImageDetailsForm } from "@/app/components/dashboard/images/ImageDetailsForm";
 import { type Photo, fetchPhotos, updatePhoto, getAiTagsForPhoto } from "@/app/lib/photos";
@@ -309,11 +310,13 @@ export default function ImageDetailPage() {
   const nextPhoto = currentIndex < allPhotos.length - 1 ? allPhotos[currentIndex + 1] : null;
   const hasPrev = currentIndex > 0;
   const hasNext = currentIndex >= 0 && currentIndex < allIds.length - 1;
+  const isDetailDataLoading = tagsLoading || collectionsLoading;
 
   if (initialLoading) {
     return (
-      <div className="p-8">
-        <p className="text-gray-500 text-sm">Loading...</p>
+      <div className="p-8 flex items-center gap-2 text-gray-500 text-sm">
+        <LoadingCircle size="md" label="Loading image details" />
+        <p>Loading image details...</p>
       </div>
     );
   }
@@ -343,6 +346,12 @@ export default function ImageDetailPage() {
           title="Image Details"
           description="Edit and manage your image details"
         />
+        {isDetailDataLoading && (
+          <div className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-500">
+            <LoadingCircle size="sm" label="Fetching image data" />
+            Fetching image data...
+          </div>
+        )}
       </div>
 
       <div className="flex gap-8 flex-col lg:flex-row">
