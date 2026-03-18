@@ -103,32 +103,54 @@ export default function ImageDetailPage() {
     let cancelled = false;
 
     const loadData = async () => {
-      setTagsLoading(true);
-      setCollectionsLoading(true);
-
       const cached = prefetchCache.current.get(photo.id);
 
-      try {
-        const [pTags, aTags, cols] = await Promise.all([
-          cached?.tags ? Promise.resolve(cached.tags) : getPhotoTags(token, photo.id),
-          allTagsFetched.current ? Promise.resolve(allTags) : fetchTags(token),
-          cached?.collections
-            ? Promise.resolve(cached.collections)
-            : fetchCollectionsForPhoto(token, photo.id),
-        ]);
+      // Show cached values immediately when available to avoid visible lag.
+      if (cached?.tags) {
+        setPhotoTags(cached.tags);
+      }
+      if (cached?.collections) {
+        setPhotoCollections(cached.collections);
+      }
 
-        if (cancelled) return;
+      setTagsLoading(!cached?.tags);
+      setCollectionsLoading(!cached?.collections);
 
-        setPhotoTags(pTags);
+      const tagsPromise = (async () => {
+        const pTags = cached?.tags ? cached.tags : await getPhotoTags(token, photo.id);
+
         if (!allTagsFetched.current) {
-          setAllTags(aTags);
-          allTagsFetched.current = true;
+          const fetchedAllTags = await fetchTags(token);
+          if (!cancelled) {
+            setAllTags(fetchedAllTags);
+            allTagsFetched.current = true;
+          }
         }
-        setPhotoCollections(cols);
+
+        if (!cancelled) {
+          setPhotoTags(pTags);
+          setTagsLoading(false);
+        }
+      })();
+
+      const collectionsPromise = (async () => {
+        const cols = cached?.collections
+          ? cached.collections
+          : await fetchCollectionsForPhoto(token, photo.id);
+
+        if (!cancelled) {
+          setPhotoCollections(cols);
+          setCollectionsLoading(false);
+        }
+      })();
+
+      try {
+        await Promise.all([tagsPromise, collectionsPromise]);
       } catch (err) {
         console.error("Failed to load image data:", err);
       } finally {
         if (!cancelled) {
+          // Ensure both loaders are reset even when one request fails.
           setTagsLoading(false);
           setCollectionsLoading(false);
         }
