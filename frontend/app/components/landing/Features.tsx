@@ -53,7 +53,7 @@ export const Features = () => (
               className="flex-1 min-w-80"
             >
               <div className="bg-white rounded-xl p-6 border border-gray-200 transition-colors h-full">
-                <div className="text-4xl mb-4 text-[#39a2fa]">
+                <div className="text-4xl mb-4 text-brand-blue">
                   <IconComponent sx={{ fontSize: 40 }} />
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">

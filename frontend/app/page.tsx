@@ -18,7 +18,7 @@ export default function LandingPage() {
 
       {/* CTA Section */}
       <section className="flex justify-center px-6 py-20">
-        <div className="w-full max-w-2xl bg-linear-to-r from-[#39a2fa] to-sky-700 rounded-2xl p-12 text-center text-white">
+        <div className="w-full max-w-2xl bg-linear-to-r from-brand-blue to-sky-700 rounded-2xl p-12 text-center text-white">
           
           <h2 className="text-4xl font-bold mb-4">
             Ready to Organize<br />Your Creative Work?
@@ -32,7 +32,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/register"
-              className="px-8 py-3 bg-white text-[#39a2fa] font-medium rounded-lg hover:bg-gray-100 transition-colors"
+              className="px-8 py-3 bg-white text-brand-blue font-medium rounded-lg hover:bg-gray-100 transition-colors"
             >
               Get Started Free
             </Link>
