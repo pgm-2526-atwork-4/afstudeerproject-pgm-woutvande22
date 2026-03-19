@@ -6,7 +6,7 @@ interface AuthSidePanelProps {
 }
 
 export const AuthSidePanel = ({ title, description }: AuthSidePanelProps) => (
-<aside className="hidden lg:flex lg:w-1/2 bg-gray-200 items-center justify-center relative">
+<aside className="hidden lg:flex lg:w-1/2 bg-linear-to-br from-brand-blue to-sky-100 items-center justify-center relative">
   <div className="absolute left-8 top-8">
     <BackButton href="/" label="Back" />
   </div>
