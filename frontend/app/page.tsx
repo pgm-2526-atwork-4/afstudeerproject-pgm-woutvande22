@@ -2,17 +2,9 @@
 
 import { Navbar } from "./components/landing/Navbar";
 import { Hero } from "./components/landing/Hero";
+import { Features } from "./components/landing/Features";
+import Link from "next/link";
 
-const moodboards = [
-  { label: "Serif Elegance", color: "bg-[#1e3a30]" },
-  { label: "Gradient Burst", color: "bg-[#c5dff0]" },
-  { label: "Grid System", color: "bg-[#d9a090]" },
-  { label: "Brand Kit", color: "bg-[#c9a96e]" },
-  { label: "Ink Botanicals", color: "bg-[#1e3a30]" },
-  { label: "Desert Light", color: "bg-[#8b7355]" },
-  { label: "Mono Type", color: "bg-[#4a86b5]" },
-  { label: "Woven Linen", color: "bg-[#5a5a52]" },
-];
 
 export default function LandingPage() {
   return (
@@ -22,24 +14,30 @@ export default function LandingPage() {
 
       <Hero></Hero>
 
-      <section className="flex justify-center px-6 pb-20">
-        <div className="w-full max-w-3xl bg-white border border-gray-200 rounded-2xl shadow-xl overflow-hidden">
-          {/* Browser traffic lights */}
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100">
-            <span className="w-3 h-3 rounded-full bg-red-400" />
-            <span className="w-3 h-3 rounded-full bg-yellow-400" />
-            <span className="w-3 h-3 rounded-full bg-green-400" />
+      <Features />
+
+      {/* CTA Section */}
+      <section className="flex justify-center px-6 py-20">
+        <div className="w-full max-w-2xl bg-linear-to-r from-[#39a2fa] to-sky-700 rounded-2xl p-12 text-center text-white">
+          
+          <h2 className="text-4xl font-bold mb-4">
+            Ready to Organize<br />Your Creative Work?
+          </h2>
+          
+          <p className="text-white text-opacity-90 mb-8 text-lg">
+            Join thousands of designers and creative professionals who organize
+            their visual inspiration with Collections. Start free today.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/register"
+              className="px-8 py-3 bg-white text-[#39a2fa] font-medium rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              Get Started Free
+            </Link>
           </div>
 
-          {/* Moodboard grid */}
-          <div className="grid grid-cols-4 gap-4 p-6">
-            {moodboards.map((board) => (
-              <div key={board.label} className="flex flex-col gap-2">
-                <div className={`${board.color} rounded-lg aspect-[4/3]`} />
-                <span className="text-xs text-gray-600">{board.label}</span>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
     </main>
