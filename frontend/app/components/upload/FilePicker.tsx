@@ -86,6 +86,7 @@ export const FilePicker = ({
               {isDragging ? "Drop your images here" : "Drag and drop images"}
             </p>
             <p className="text-xs text-gray-500">or click to browse multiple files</p>
+            <p className="text-xs text-gray-500">max 10MB</p>
           </>
         )}
       </div>
